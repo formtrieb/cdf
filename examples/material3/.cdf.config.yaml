@@ -1,0 +1,30 @@
+spec_directories:
+  - ./specs
+
+# Material 3 is Google's design system. Unlike Primer (real DTCG) or
+# shadcn (flat CSS vars), Material 3 tokens come from a dynamic-colour
+# seed via `@material/material-color-utilities`, supplemented by
+# manually transcribed elevation / shape / motion / typography tokens
+# from m3.material.io. This Profile adopts both surfaces via the (γ)
+# principle, with mixed MECHANISM — `token_grammar` for systematic
+# families (color × role × slot × state; palette × tone; elevation;
+# shape.corner; motion.duration; motion.easing; typography) and
+# `standalone_tokens` for one-off system singletons (focus outline,
+# state-layer percentages are NOT modelled — see findings F-material-0).
+# The (γ) PRINCIPLE (prose-ownership, zero new format fields) holds
+# regardless of mechanism — this is the post-Primer reframe documented
+# in BIG-DS-SHADCN-FINDINGS.md F-shadcn-0 footnote.
+profile_path: ./material3.profile.yaml
+
+# Legacy `profile:` block for validator compatibility. Prefix `m3`,
+# SEMANTIC (Light/Dark) × CONTRAST (standard/medium/high) as TWO axes
+# — the F-material-1 decision per the brief. Vision-accommodation
+# (F-primer-2 deferred) stays deferred.
+profile:
+  prefix: m3
+  token_pattern_interactive: ""
+  token_pattern_status: ""
+  theme_axes:
+    semantic: [Light, Dark]
+    contrast: [standard, medium, high]
+  placeholder_values: []

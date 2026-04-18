@@ -1,0 +1,20 @@
+spec_directories:
+  - ./specs
+
+# shadcn/ui is Radix + Tailwind + CSS variables. The DS does not own
+# token values — consumers copy globals.css and fork it. This Profile
+# uses the (γ) bridge strategy: `standalone_tokens` declare the
+# semantic concepts, `description:` annotates them as external. See
+# findings.md F-shadcn-0 for the strategy decision.
+profile_path: ./shadcn.profile.yaml
+
+# Legacy `profile:` block carried forward from radixTests for validator
+# compatibility. Prefix is `sh`; token_pattern fields are empty because
+# shadcn tokens live in standalone_tokens, not in a grammar.
+profile:
+  prefix: sh
+  token_pattern_interactive: ""
+  token_pattern_status: ""
+  theme_axes:
+    semantic: [Light, Dark]
+  placeholder_values: []

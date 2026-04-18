@@ -1,0 +1,453 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# USWDS Button — CDF Component (fifth Big-DS foreign-DS pass)
+# CDF Component Format v1.0.0-draft.8
+#
+# Source:
+#   https://designsystem.digital.gov/components/button/
+#   https://github.com/uswds/uswds/tree/main/packages/usa-button
+#   uswdsTests/.uswds/packages/usa-button/src/styles/_usa-button.scss
+#   uswdsTests/.uswds/packages/uswds-core/src/styles/mixins/helpers/
+#     set-text-and-bg.scss (variant colour mapping)
+#
+# USWDS's canonical Interactive component. Eight variants × two sizes ×
+# four pressable states. Every variant × state cell resolves to a
+# discrete USWDS Sass token (`color("primary-dark")` etc.) at
+# Sass-compile time — state-layer overlays / opacity modifiers
+# NOWHERE, single-token-per-cell throughout. CDF-CON-008 is expected
+# to be silent on this spec (fifth-DS data point for the Token-Driven
+# Principle).
+#
+# Scope choices (per brief Step 2):
+#   - variant ∈ {default, secondary, accent-cool, accent-warm, base,
+#     outline, inverse, unstyled} — USWDS's eight variants. `inverse`
+#     is modelled as a SEPARATE variant even though USWDS's Sass
+#     source treats it as a modifier that composes with outline /
+#     unstyled. See F-uswds-inverse-variant for the modelling
+#     discussion; CDF chose the flat-variant representation for
+#     `tokens:`-block legibility.
+#   - size ∈ {default, big} — USWDS's two Button sizes. Per
+#     CDF-PROFILE-SPEC vocab, `default` is the baseline and `big` is
+#     the `.usa-button--big` modifier class.
+#   - Touch-target (WCAG 2.5.5): emerges from padding + font-size math
+#     in USWDS's Sass, NOT a token. Property `density` is NOT
+#     declared — USWDS doesn't ship a density scale (unlike Material
+#     3's comfortable/default/compact). F-uswds-touch-target for the
+#     observation.
+#   - No `loading` / `pending` state — USWDS ships no pending button
+#     pattern (same deferral as Primer / Material 3).
+#   - No polymorphism — USWDS Buttons are always native `<button>` or
+#     `<a class="usa-button">`; the `<a>` case is prose-documented
+#     here, not modelled via asChild. Same deferral category as
+#     F-Radix-3 (shared across five DSes now).
+# ═══════════════════════════════════════════════════════════════════════════════
+
+cdf_version: "^1.0.0-draft"
+name: Button
+category: Interactive
+profile: ../uswds.profile.yaml
+
+description: >
+  USWDS Button — labelled action trigger used across federal websites
+  per designsystem.digital.gov/components/button/. Eight colour
+  variants, two sizes, four-state pressable interaction surface.
+  Built on native `<button>`; an anchor-as-button variant exists
+  (`<a class="usa-button">`) but is not CDF-modelled (same deferral
+  as F-Radix-3's polymorphism question — consumer styles the `<a>`
+  with the same classes and ARIA wiring).
+
+  Colour behaviour is variant-driven, binding to flat USWDS Sass-key
+  tokens (`color.primary`, `color.primary-dark`, `color.primary-darker`
+  etc.). State variation (rest → hover → active) is expressed via
+  §13.2 modifier overrides, each taking a §13.3 value-map keyed on
+  variant — the hybrid form USWDS's flat-token shape requires.
+
+  NOT modelled: loading/pending (not shipped), `<a>`-as-button
+  polymorphism (F-Radix-3 deferral, fifth-DS), `big` size's per-
+  token sizing (USWDS expresses as padding+font-size increments,
+  not tokens — F-uswds-touch-target).
+
+# ── API surface ──────────────────────────────────────────────────────────────
+
+properties:
+
+  variant:
+    # Vocab-shorthand workaround (F-shadcn-1 / F-primer / F-material
+    # carry-over): cdf-core's property-type-valid does not implement
+    # §7.2's profile-vocabulary shorthand. Values duplicated from
+    # Profile's `button_variant` vocabulary. `binds_to:` declares the
+    # link per CDF-STR-012.
+    type: enum
+    values: [default, secondary, accent-cool, accent-warm, base, outline, inverse, unstyled]
+    default: default
+    binds_to: button_variant
+    description: >
+      Visual / semantic role. Each variant binds to a distinct
+      background / text / border token triple from the Profile's
+      standalone_tokens. Mapping (at rest state):
+        - default      → bg: color.primary      + text: color.white
+        - secondary    → bg: color.secondary    + text: color.white
+        - accent-cool  → bg: color.accent-cool  + text: color.ink
+                         (USWDS picks ink/white via auto-contrast;
+                          prose-noted only)
+        - accent-warm  → bg: color.accent-warm  + text: color.ink
+        - base         → bg: color.base         + text: color.white
+        - outline      → bg: color.transparent  + text: color.primary
+                         + border: color.primary (via inset box-shadow,
+                         NOT a `border:` declaration — USWDS's
+                         design choice; see tokens block below)
+        - inverse      → bg: color.transparent  + text: color.base-lightest
+                         + border: color.base-lighter
+                         (inverse is for dark-background contexts —
+                         F-uswds-inverse-variant)
+        - unstyled     → bg: color.transparent  + text: color.primary
+                         + no padding / border / radius
+
+  size:
+    type: enum
+    values: [default, big]
+    default: default
+    binds_to: button_size
+    description: >
+      Two-value scale axis: `default` (`.usa-button` baseline —
+      padding 1.5u × 2.5u, font-size md) and `big` (`.usa-button--big`
+      — padding 2u × 3u, font-size lg). Both values ship as USWDS
+      CSS classes with the sizing expressed in `units()` + `font-size()`
+      Sass helpers, NOT as dedicated size tokens. `target_only: true`
+      is NOT declared because the axis is presentational — if a later
+      USWDS version ships a `controls.height.{size}` token family,
+      this spec would add bindings at that point (see F-uswds-
+      touch-target).
+
+  disabled:
+    type: boolean
+    default: false
+    description: >
+      Native HTML `disabled` attribute on the rendered `<button>`.
+      Removes the element from the Tab sequence and blocks pointer +
+      keyboard activation. Drives the `interaction` state axis to
+      `disabled`. USWDS also accepts `aria-disabled="true"` as a
+      polyfill for `<a>`-as-button (keeps element focusable but
+      suppresses activation via CSS + JS convention) — modelled via
+      the §15 `aria:` narrative, not as a separate property.
+
+# ── Runtime state axes ───────────────────────────────────────────────────────
+
+states:
+
+  interaction:
+    values: [enabled, hover, pressed, disabled]
+    binds_to: pressable
+    token_expandable: true
+    description: >
+      USWDS Button's four-state pressable surface per the Profile's
+      `pressable` pattern. `hover` and `pressed` map to distinct
+      colour-tone tokens per variant (`-dark` for hover, `-darker`
+      for pressed — USWDS's naming convention). `disabled` is the
+      `button-disabled` mixin-driven treatment: text resolves to
+      `color.disabled`, background becomes translucent base-lighter.
+      Focus is NOT a token-backed state in USWDS (unlike Material 3)
+      — it is the `focus-outline` mixin applied to `:focus-visible`
+      (single-ring pattern, §13.5.1).
+
+# ── Output contract ──────────────────────────────────────────────────────────
+
+events:
+
+  click:
+    payload: MouseEvent
+    description: >
+      Native click event. Fires on pointer activation, Enter key,
+      and Space key (browser-native `<button>` behaviour). Not
+      emitted when `disabled=true`.
+
+# ── Structure ────────────────────────────────────────────────────────────────
+
+anatomy:
+
+  container:
+    element: button
+    description: >
+      The rendered surface — native `<button type="button">` with the
+      `.usa-button` class and optional variant/size modifier classes.
+      Carries the background, text, focus outline, border (via
+      inset box-shadow for outline variant), and radius. Optional
+      icon children (class `.usa-icon`) sit inline; icon colour
+      inherits `color` from the container.
+
+# ── Visual contract — hybrid §13.3 + §13.2 for flat-token state variation ──
+# USWDS's token surface has NO grammar placeholders — `{interaction}`
+# cannot expand against flat `primary` / `primary-dark` / `primary-
+# darker` names. Two options:
+#   (a) §8.8 compound_states — 8 variants × 3 non-rest states = 24 entries
+#       per CSS property. Exhaustive but verbose.
+#   (b) §13.2 modifier overrides nested with §13.3 value-maps — one
+#       `background--hover:` block keyed on variant. Compact and
+#       mirrors the Sass source's per-variant-state pattern.
+# Going with (b). F-uswds-state-expression logs the observation —
+# the format supports the combination, and it reads legibly for this
+# shape of token surface.
+#
+# Where §13.2 cannot express (e.g. text colour for inverse-outline
+# combination — a compound variant × state), compound_states covers
+# the residual.
+
+tokens:
+
+  container:
+
+    # ── Background — rest state per variant ───────────────────────────
+    # §13.3 value-map form. `transparent`, `unstyled`, `outline`,
+    # `inverse` all resolve to color.transparent (no fill).
+    background:
+      default: color.primary
+      secondary: color.secondary
+      accent-cool: color.accent-cool
+      accent-warm: color.accent-warm
+      base: color.base
+      outline: color.transparent
+      inverse: color.transparent
+      unstyled: color.transparent
+
+    # Background — hover state. Outline / inverse / unstyled remain
+    # transparent (no fill change); default / secondary / accent /
+    # base shift to the `-dark` colour per USWDS's set-text-and-bg
+    # mixin pattern.
+    background--hover:
+      default: color.primary-dark
+      secondary: color.secondary-dark
+      accent-cool: color.accent-cool-dark
+      accent-warm: color.accent-warm-dark
+      base: color.base-dark
+      outline: color.transparent
+      inverse: color.transparent
+      unstyled: color.transparent
+
+    # Background — pressed state. Filled variants go to `-darker`;
+    # transparent variants stay transparent.
+    background--pressed:
+      default: color.primary-darker
+      secondary: color.secondary-darker
+      accent-cool: color.accent-cool-darker
+      accent-warm: color.accent-warm-darker
+      base: color.base-darker
+      outline: color.transparent
+      inverse: color.transparent
+      unstyled: color.transparent
+
+    # Background — disabled. USWDS's button-disabled mixin resolves
+    # to `disabled` family regardless of variant (same grey appearance
+    # across variants). Outline/inverse stay transparent.
+    background--disabled:
+      default: color.disabled-lighter
+      secondary: color.disabled-lighter
+      accent-cool: color.disabled-lighter
+      accent-warm: color.disabled-lighter
+      base: color.disabled-lighter
+      outline: color.transparent
+      inverse: color.transparent
+      unstyled: color.transparent
+
+    # ── Text colour — rest state per variant ──────────────────────────
+    # Filled variants get `color.white` (USWDS auto-contrasts in the
+    # set-text-and-bg mixin; light-theme default resolves to white
+    # for all five filled variants per the `$theme-button-disabled-text-color`
+    # context). Outline / unstyled get `color.primary`; inverse gets
+    # `color.base-lightest` (legible on dark backgrounds).
+    color:
+      default: color.white
+      secondary: color.white
+      accent-cool: color.ink
+      accent-warm: color.ink
+      base: color.white
+      outline: color.primary
+      inverse: color.base-lightest
+      unstyled: color.primary
+
+    color--hover:
+      default: color.white
+      secondary: color.white
+      accent-cool: color.ink
+      accent-warm: color.ink
+      base: color.white
+      outline: color.primary-dark
+      inverse: color.white
+      unstyled: color.primary-dark
+
+    color--pressed:
+      default: color.white
+      secondary: color.white
+      accent-cool: color.ink
+      accent-warm: color.ink
+      base: color.white
+      outline: color.primary-darker
+      inverse: color.white
+      unstyled: color.primary-darker
+
+    color--disabled:
+      default: color.disabled
+      secondary: color.disabled
+      accent-cool: color.disabled
+      accent-warm: color.disabled
+      base: color.disabled
+      outline: color.disabled
+      inverse: color.disabled-light
+      unstyled: color.disabled
+
+    # ── Border / stroke — outline + inverse only (via inset box-shadow) ─
+    # USWDS's outline button uses `box-shadow: inset 0 0 0 2px color`
+    # rather than `border:` — a design choice to keep the button's
+    # outer dimensions stable. In CDF tokens, this is bound under the
+    # `border-color` CSS property (the generator chooses whether to
+    # emit `border:` or `box-shadow:` per Target rules). Non-outline
+    # variants have no border.
+    border-color:
+      default: none
+      secondary: none
+      accent-cool: none
+      accent-warm: none
+      base: none
+      outline: color.primary
+      inverse: color.base-lighter
+      unstyled: none
+
+    border-color--hover:
+      outline: color.primary-dark
+      inverse: color.white
+      default: none
+      secondary: none
+      accent-cool: none
+      accent-warm: none
+      base: none
+      unstyled: none
+
+    border-color--pressed:
+      outline: color.primary-darker
+      inverse: color.white
+      default: none
+      secondary: none
+      accent-cool: none
+      accent-warm: none
+      base: none
+      unstyled: none
+
+    border-color--disabled:
+      outline: color.disabled-lighter
+      inverse: color.disabled-light
+      default: none
+      secondary: none
+      accent-cool: none
+      accent-warm: none
+      base: none
+      unstyled: none
+
+    # ── Focus ring — single-ring per §13.5.1 ──────────────────────────
+    # USWDS focus-outline mixin applies `outline: 0.25rem solid
+    # color("blue-40v")` + `outline-offset: 0.25rem`. Single ring —
+    # fourth-DS confirmation of the single-ring pattern (shadcn +
+    # Primer + Material 3 prior).
+    outline-color: color.focus
+
+    # ── Border radius — invariant across variants and sizes ───────────
+    # `radius("md")` from `$theme-button-border-radius`. USWDS does
+    # not ship a shape axis — agencies fork the setting to retint /
+    # reshape, but the DS itself is one-radius.
+    border-radius: radius.md
+
+  # NOTE: size axis (default / big) — USWDS expresses via padding +
+  # font-size increments in Sass, NOT as height / padding tokens. Not
+  # bound in this `tokens:` block. The axis is not `target_only: true`
+  # because `size` is not trying to claim the tokens exist elsewhere
+  # — it's acknowledging USWDS's intentional single-radius + single-
+  # sizing-family design. Logged as F-uswds-touch-target.
+
+# ── Behavioural contract ─────────────────────────────────────────────────────
+
+behavior:
+
+  pressable:
+    description: >
+      On pointer activation, Enter, or Space, the `click` event fires
+      and the consumer's handler runs. The component itself holds no
+      internal state tied to activation; hover / pressed are browser
+      pseudo-class driven. The `.usa-button--hover` and
+      `.usa-button--active` utility classes force the visual states
+      for demo / testing purposes only.
+
+  disabled:
+    description: >
+      Suppresses pointer + keyboard activation via the native
+      `disabled` attribute OR `aria-disabled="true"` (for
+      `<a class="usa-button">` polyfill). `button-disabled` Sass
+      mixin resolves the container to disabled-family background +
+      text. Cursor becomes `not-allowed` via CSS.
+    css: "pointer-events: none; cursor: not-allowed;"
+
+  reduced_motion:
+    description: >
+      Button has no explicit transition-driven motion beyond the
+      state-colour change (which is unmodulated — USWDS doesn't
+      animate the colour shift). If a consumer adds a transition,
+      it SHOULD use the `u-transition` mixin which auto-collapses
+      to `transition: none` under `@media (prefers-reduced-motion)`.
+      OS-signal CSS media query — NOT a theme-axis concern, lives
+      in §14.4 territory. See F-primer-2 discussion in findings.md.
+
+  forced_colors:
+    description: >
+      USWDS Button applies `border: 1px solid ButtonBorder` under
+      `@media (forced-colors: active)` (Windows High Contrast Mode).
+      This is OS-signal-driven — the consumer's browser detects
+      High Contrast Mode and USWDS's CSS reacts via the media
+      query. NOT a theme-axis; belongs in §14.4 `css:` escape hatch
+      per draft.8. Format-neutral observation — see F-primer-2
+      resolution and F-uswds-forced-colors in findings.md.
+    css: >
+      @media (forced-colors: active) {
+        border: 1px solid ButtonBorder;
+      }
+
+# ── Accessibility ────────────────────────────────────────────────────────────
+
+accessibility:
+  element: button
+  focus-visible: true
+  keyboard:
+    Enter: "Activate (fires click)"
+    Space: "Activate (fires click)"
+    Tab: "Native focus order"
+  aria:
+    - "aria-disabled: true — when disabled=true OR when rendered as <a> (preserves focusability for screen readers)"
+    - "role: button — inferred from native <button>; explicit when rendered as <a class='usa-button'>"
+  min-target-size: radius.md
+  contrast: >
+    USWDS's Sass color system pre-validates every (background, text)
+    pair for WCAG 2.1 AA contrast (4.5:1 for normal text, 3:1 for
+    large bold text per USWDS button `font-weight: bold` convention).
+    The validation runs at Sass compile time via the `$theme-color-*`
+    settings' paired constraints; agencies that retint via the settings
+    inherit the contrast check. Focus ring uses `color.focus` (default
+    blue-40v) which meets WCAG 2.4.7 non-text-contrast (3:1) against
+    all USWDS backgrounds.
+
+  label_association: >
+    Button label is the element's text content; `aria-label` or
+    `aria-labelledby` SHOULD be used when the visible label is an
+    icon only (USWDS's icon-only button pattern).
+
+# ── Compound states — inverse-outline intersection ──────────────────────────
+# Inverse is mostly treated as a top-level variant above, but USWDS
+# also ships `.usa-button--outline.usa-button--inverse` — outline
+# button styled for dark backgrounds. At that intersection the text
+# colour should be base-lightest (not the primary we'd get from a
+# non-inverse outline). Since we modelled `inverse` and `outline` as
+# SEPARATE variants (mutually exclusive in our axis), this compound
+# doesn't fire — the `inverse` variant above already carries the
+# dark-bg text colour. compound_states empty.
+#
+# F-uswds-inverse-variant tracks the modelling choice: the flat
+# approach (each combination is a variant) loses the composability
+# the Sass source has but gains clean value-map bindings. For two
+# variants × one modifier (inverse), this is fine. If USWDS later
+# adds `.usa-button--accent-cool.usa-button--inverse` as a distinct
+# styling, flat-variant expansion becomes unwieldy — that's a
+# future-USWDS concern, not a draft.8 format question.

@@ -1,0 +1,22 @@
+spec_directories:
+  - ./specs
+
+# USWDS (U.S. Web Design System) — federal government accessibility-first DS.
+# Architecturally shadcn-adjacent (flat Sass tokens → post-processed CSS, no
+# DS-level CSS custom properties), but with a distinct ownership model:
+# DS-owned defaults, consumer-overridable at Sass compile time via
+# `$theme-*` variable forks. Accessibility preference axes (high-contrast,
+# reduced-motion) are expressed as OS-signal CSS media queries
+# (`forced-colors: active`, `prefers-reduced-motion`) NOT as theme
+# modifiers — this distinction drives the F-primer-2 answer.
+profile_path: ./uswds.profile.yaml
+
+# Legacy `profile:` block carried forward from prior passes for validator
+# compatibility. Prefix `us` (USWDS's own `usa-*` class prefix shortened to
+# stay disjoint from `ft` / `mp` / `rdx` / `sh` / `pr` / `m3`).
+profile:
+  prefix: us
+  token_pattern_interactive: ""
+  token_pattern_status: ""
+  theme_axes: {}
+  placeholder_values: []

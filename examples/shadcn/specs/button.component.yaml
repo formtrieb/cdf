@@ -1,0 +1,278 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# shadcn/ui Button — CDF Component (foreign-DS validation, token-bridge focus)
+# CDF Component Format v1.0.0-draft.6
+#
+# Source:
+#   https://ui.shadcn.com/docs/components/button
+#   https://github.com/shadcn-ui/ui/tree/main/apps/v4/registry/new-york-v4/ui/button.tsx
+#
+# shadcn's canonical Interactive component. Combines Radix Slot-style
+# polymorphism (`asChild`) with a variant × size cross-product and
+# pressable interaction. The tokens: block is the spec's primary job
+# here — it demonstrates how Component bindings resolve against the
+# Profile's (γ) standalone-token bridge.
+#
+# Scope choices (see session brief, Step 2):
+#   - variant × size treated as independent axes; no compound_states
+#     (all 24 cells are legal per shadcn source).
+#   - asChild — documented boolean only, same Tier-4 deferral as
+#     F-Radix-3. No format-budget spent.
+#   - Loading/pending state — out of scope; not shipped by shadcn.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+cdf_version: "^1.0.0-draft"
+name: Button
+category: Interactive
+profile: ../shadcn.profile.yaml
+
+description: >
+  Labeled action trigger with six visual variants and four sizes.
+  Built on a native `<button>` by default; optional `asChild` prop
+  delegates the render target to a consumer-provided child (typical
+  use: `<a>` to make an anchor visually identical to a button).
+
+  Colour behaviour is variant-driven and binds to shadcn's semantic
+  token pairs (`color.primary` + `color.primaryForeground`, etc.).
+  Size affects padding/height only — shadcn implements those as
+  Tailwind utility bundles, NOT as DS tokens, so the `size` property
+  has no token bindings in this spec. See findings F-shadcn-2.
+
+  NOT modelled: loading/pending state (consumer concern, not shipped),
+  form-submit attributes (standard HTML, no CDF value to add).
+
+# ── API surface ──────────────────────────────────────────────────────────────
+
+properties:
+
+  variant:
+    # Profile §7.2 says `type: variant` (a Profile-vocabulary shorthand)
+    # MUST be resolved by profile-aware validators, but cdf-core's
+    # property-type-valid rule does not implement the shorthand and
+    # rejects it. Using the explicit enum form with values inlined —
+    # values are duplicated from the Profile's `variant` vocabulary.
+    # See findings F-shadcn-1.
+    type: enum
+    values: [default, destructive, outline, secondary, ghost, link]
+    default: default
+    description: >
+      Visual and semantic role. Maps 1:1 to a background / foreground
+      token pair from the Profile's standalone_tokens:
+        - default     → color.primary       + color.primaryForeground
+        - destructive → color.destructive   + (white, see F-shadcn-4)
+        - outline     → color.background    + color.foreground + border
+        - secondary   → color.secondary     + color.secondaryForeground
+        - ghost       → transparent         + inherits text; hover reveals
+                        color.accent        + color.accentForeground
+        - link        → transparent         + color.primary, underline
+      Consumer chooses by intent; the token pairing is enforced by
+      convention only (description prose), not by the format. See
+      findings F-shadcn-1 on the pairing representation.
+
+  size:
+    # Same vocab-shorthand drift as `variant` above (F-shadcn-1).
+    type: enum
+    values: [default, sm, lg, icon]
+    default: default
+    description: >
+      Scale axis: default (h-10, px-4), sm (h-9, px-3), lg (h-11, px-8),
+      icon (h-10, w-10, square). shadcn ships these as Tailwind utility
+      bundles; no per-size DS tokens exist. The `size` axis therefore
+      has NO bindings in the tokens: block below — consumers read the
+      property value in their Target layer and select the utility
+      bundle. See findings F-shadcn-2.
+
+  asChild:
+    type: boolean
+    default: false
+    description: >
+      Radix Slot polymorphism — when true, the Button renders its
+      behaviour onto the single child element the consumer passes
+      (commonly `<a>` or `<Link>`) instead of its own `<button>`.
+      Inherits the F-Radix-3 deferral exactly: the format does not
+      model runtime element override; Tier-4 cross-layer
+      element-match checks are silently violated when asChild is
+      true. A consumer reading the spec learns of the polymorphism
+      only from this description, not from a formal declaration.
+      Not re-logged as a shadcn finding — the friction is identical
+      to Radix's.
+
+  disabled:
+    type: boolean
+    default: false
+    description: >
+      Native HTML `disabled` attribute on the rendered `<button>`.
+      Removes the element from the Tab sequence and blocks pointer
+      + keyboard activation. Drives the `interaction` state axis
+      to `disabled`. When `asChild=true`, the consumer's element
+      receives a `data-disabled` attribute and `aria-disabled="true"`
+      (Radix Slot pattern).
+
+# ── Runtime state axes ───────────────────────────────────────────────────────
+# Only one axis — the pressable interaction surface inherited from the
+# Profile's `pressable` pattern. shadcn does not model a focus-visible
+# axis in the spec sense (it applies focus-ring styles directly via the
+# `:focus-visible` pseudo-class), so the axis stays four-valued.
+#
+# `token_expandable: true` reflects the fact that tokens DO vary across
+# the axis (hover + disabled states map to different colour resolutions),
+# even though shadcn's mechanism for that variation — opacity modifiers
+# like `/90` — is not expressible as token paths. See findings F-shadcn-3.
+
+states:
+
+  interaction:
+    values: [enabled, hover, pressed, disabled]
+    binds_to: pressable
+    token_expandable: true
+    description: >
+      Pointer/keyboard activation surface from the Profile's
+      `pressable` pattern. shadcn distinguishes enabled/hover/disabled
+      visually; `pressed` (active) uses the same visual as hover in
+      practice — see token_mapping below.
+    token_mapping:
+      pressed: hover
+
+# ── Output contract ──────────────────────────────────────────────────────────
+
+events:
+
+  click:
+    payload: MouseEvent
+    description: >
+      Native click event. Fires on pointer activation, Enter key, and
+      Space key (browser-native `<button>` behaviour). Not emitted
+      when `disabled=true`. When `asChild=true`, the event originates
+      from the consumer-provided element.
+
+# ── Structure ────────────────────────────────────────────────────────────────
+
+anatomy:
+
+  container:
+    element: button
+    description: >
+      The rendered surface — native `<button type="button">` by
+      default, polymorphic when `asChild=true` (see F-Radix-3).
+      Carries the variant + size utility classes, focus-ring CSS,
+      and the `disabled` HTML attribute. No nested children injected
+      by the Component; the label text is arbitrary consumer-provided
+      content passed as children.
+
+# ── Visual contract ──────────────────────────────────────────────────────────
+# This block is the (γ) token-bridge under load. Every binding resolves
+# to a flat path declared in the Profile's standalone_tokens. Per-variant
+# bindings use §13.3 value-map form (property-driven); state variation
+# for hover/disabled is NOT bound (see F-shadcn-3).
+#
+# Pair-pattern observation: `background` and `color` value-maps must
+# stay synchronised by convention (each variant's bg and fg travel
+# together in the Profile's description prose). Nothing in the format
+# validates the sync — that is precisely the F-shadcn-1 question.
+
+tokens:
+
+  container:
+
+    # Background colour — per-variant, enabled-state only.
+    # ghost + link are visually transparent; `none` is the documented
+    # literal for "explicitly no value" (§13.6 rule 3).
+    background:
+      default: color.primary
+      destructive: color.destructive
+      outline: color.background
+      secondary: color.secondary
+      ghost: none
+      link: none
+
+    # Foreground (text) colour — paired with background above.
+    # The pairing is convention-only; nothing in the format enforces
+    # that `background.default = color.primary` implies
+    # `color.default = color.primaryForeground`.
+    color:
+      default: color.primaryForeground
+      destructive: color.primaryForeground    # see F-shadcn-4
+      outline: color.foreground
+      secondary: color.secondaryForeground
+      ghost: color.foreground
+      link: color.primary
+
+    # Border — outline variant only. Other variants have no border.
+    # Per §13.2 modifier syntax, only the `outline` case carries a
+    # border colour; rest fall back to no border (not expressed here,
+    # absence is the default).
+    border-color:
+      outline: color.border
+      default: none
+      destructive: none
+      secondary: none
+      ghost: none
+      link: none
+
+    # Focus ring colour — single standalone_token applied at the
+    # component level via :focus-visible. No per-variant variation
+    # in shadcn (the ring colour is always `--ring`, semi-transparent).
+    # Using §13.5 focus block would be more idiomatic if the Profile
+    # declared a focus grammar, but shadcn's focus surface is a single
+    # CSS variable — logged in F-shadcn-5 as a tension.
+    outline-color: color.ring
+
+    # Border radius — singleton, derived from `--radius`. Same for
+    # every variant and size; no binding variation needed.
+    border-radius: radius.default
+
+    # Size-derived dimensions (height, padding-inline) — INTENTIONALLY
+    # NOT BOUND. shadcn ships these as Tailwind utility class bundles
+    # (`h-10 px-4 py-2` for default, `h-9 px-3` for sm, etc.), with
+    # no DS-owned tokens. The format permits raw literals with a
+    # validator warning (§13.6 rule 4), but emitting them here would
+    # falsely claim the DS owns values it doesn't. See F-shadcn-2.
+
+# ── Behavioural contract ─────────────────────────────────────────────────────
+
+behavior:
+
+  pressable:
+    description: >
+      On pointer activation, Enter, or Space, the `click` event fires
+      and the consumer's handler runs. The component itself holds no
+      internal state tied to activation; hover/pressed/focus-visible
+      are purely presentational and driven by browser pseudo-classes,
+      not by JS state.
+
+  disabled:
+    description: >
+      Suppresses pointer + keyboard activation via the native
+      `disabled` attribute. When `asChild=true`, the underlying
+      element receives the `data-disabled` attribute; consumers
+      styling `a[data-disabled]` get parity with
+      `button:disabled`.
+
+  polymorphism:
+    description: >
+      `asChild=true` delegates rendering to the single child element
+      passed by the consumer. The Button's classes, ARIA, and event
+      wiring are merged onto that child. No CDF-formal expression
+      of this behaviour — see F-Radix-3. Use case is specifically
+      to make an `<a>` visually and semantically identical to a
+      `<button>`.
+
+# ── Accessibility ────────────────────────────────────────────────────────────
+
+accessibility:
+  element: button
+  focus-visible: true
+  keyboard:
+    Enter: "Activate (fires click)"
+    Space: "Activate (fires click)"
+    Tab: "Native focus order"
+  aria:
+    - "aria-disabled: true — when disabled=true (in addition to native disabled attr)"
+    - "role: inferred from `<button>`; overridden when asChild provides a different element"
+  contrast: >
+    Each variant's background + foreground token pair is expected to
+    meet WCAG 2.1 AA (4.5:1 for label text, 3:1 for ghost/link on
+    surface). The DS does not own the values, so actual contrast is
+    the consumer's responsibility — globals.css is where compliance
+    happens or breaks. The pairing convention documented in the
+    Profile descriptions exists to nudge consumers toward safe
+    combinations.

@@ -1,0 +1,92 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Mini DS — minimal CDF Profile (v1.0.0-draft.5)
+# ──────────────────────────────────────────────────────────────────────────────
+# Smallest legal Profile. Declares a single vocabulary, a single token grammar,
+# a single interaction pattern, and a single component category. Not useful
+# on its own — illustrates the required surface for a Profile to validate.
+
+name: Mini
+version: "1.0.0"
+cdf_version: ">=1.0.0 <2.0.0"
+dtcg_version: "2025.10"
+description: "Smallest valid Profile — one component category, one token family."
+
+# ── Vocabularies ─────────────────────────────────────────────────────────────
+# Vocabularies are reserved namespaces (Profile §5.5 rule 5). Values declared
+# here MUST NOT appear as values in any other axis (CDF-STR-011). The minimal
+# DS picks neutral terms (`emphasis`, `subtle`) deliberately disjoint from
+# typical real-world vocabularies (hierarchy, intent, validation) so this
+# example does not accidentally model any specific DS's semantics.
+
+vocabularies:
+  intent:
+    description: "Semantic emphasis level for a Tag."
+    values: [emphasis, subtle]
+
+# ── Token Grammar ────────────────────────────────────────────────────────────
+# One grammar, one slot. The {intent} placeholder binds to the vocabulary
+# above; the resolver enumerates `color.control.emphasis.background` and
+# `color.control.subtle.background` as the legal token paths.
+
+token_grammar:
+  color.control:
+    pattern: "color.control.{intent}.background"
+    dtcg_type: color
+    description: "Single-family color tokens keyed by intent."
+    axes:
+      intent: { vocabulary: intent }
+
+token_layers:
+  - name: Foundation
+    description: "All tokens live here in the minimal DS."
+    grammars: [color.control]
+
+# ── Interaction Patterns ─────────────────────────────────────────────────────
+# `static` is the smallest legal pattern: one declared state, no transitions.
+# A real DS uses `pressable`, `focusable`, `selectable` etc. (Profile §10.7).
+
+interaction_patterns:
+  static:
+    description: "Non-interactive element — renders one state forever."
+    states: [enabled]
+
+# ── Theming ──────────────────────────────────────────────────────────────────
+# No theme axes in the minimal DS — `theming: {}` is the cleanest declaration
+# of "this Profile ships one theme only". A real DS declares semantic
+# (Light/Dark), device (Desktop/Tablet/Mobile), shape (Round/Sharp), etc.
+
+theming: {}
+
+# ── Accessibility Defaults ───────────────────────────────────────────────────
+# All sub-fields are optional (Profile §11.1). The minimal DS only declares
+# `category_defaults`, which a Component category needs to inherit a baseline.
+# A real DS adds focus_ring, min_target_size, contrast_requirements etc.
+
+accessibility_defaults:
+  category_defaults:
+    Primitive:
+      focus_visible: false
+
+# ── Naming ───────────────────────────────────────────────────────────────────
+# Post-Batch-2 (draft.3): the Profile owns the abstract `identifier:`,
+# DS-level casing, and reserved names. CSS prefixes, methodology, BEM
+# patterns live in the Target's `styling:` block — they are framework
+# expressions, not DS identity.
+
+naming:
+  identifier: "mi"
+  casing:
+    component_names: PascalCase
+    properties: camelCase
+    token_paths: camelCase
+  reserved_names: {}
+
+# ── Categories ───────────────────────────────────────────────────────────────
+# One category, inheriting the `static` interaction pattern. A Component
+# declared with `category: Primitive` automatically picks up `static` as
+# its interaction model unless it overrides explicitly.
+
+categories:
+  Primitive:
+    description: "Non-interactive, visual-only elements."
+    interaction: static

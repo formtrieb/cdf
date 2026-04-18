@@ -1,0 +1,325 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Material 3 FAB — CDF Component (fourth Big-DS foreign-DS pass)
+# CDF Component Format v1.0.0-draft.8
+#
+# Source:
+#   https://m3.material.io/components/floating-action-button/specs
+#   https://m3.material.io/components/extended-fab/specs
+#   @material/web reference implementation
+#   Seed-derived + static tokens at .material3-tokens/
+#
+# FAB (Floating Action Button) is Material 3's elevation-distinctive
+# component. Smaller per-spec surface than Button but exercises the
+# elevation grammar most directly — FAB rest is elevation level3,
+# hover goes to level4, pressed returns to level3. Variant axis
+# tints the FAB by colour role.
+#
+# Scope choices (per brief Step 3):
+#   - variant ∈ {primary, secondary, tertiary, surface} — the four
+#     canonical M3 FAB tonal variants. Values OVERLAP with color_role
+#     vocabulary per F-material-2; binds_to: fab_variant disambiguates.
+#   - size ∈ {small, medium, large, extended} — 4-value axis. Extended
+#     is semantically a distinct "shape with a label" but Material docs
+#     treat it as a size; see F-material-fab-extended below for the
+#     "variant or size?" call. Used `size` here (matches Material
+#     docs); documented in findings.
+#   - density: `target_only: true` — same third-DS evidence as Button.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+cdf_version: "^1.0.0-draft"
+name: FAB
+category: Interactive
+profile: ../material3.profile.yaml
+
+description: >
+  Material 3's floating action button. Distinctive because of its
+  elevation: level3 at rest, level4 on hover, returning to level3 on
+  pressed — the most visibly state-driven elevation in Material's
+  component set. Unlike Button, FAB has a single axis of variant (the
+  colour role it tints with) rather than a matrix of emphasis/shape.
+
+  Extended FAB (`size: extended`) is modelled here as a size value
+  rather than a separate variant. Rationale: Material's own docs list
+  Extended under the FAB component's size section, and the visual
+  delta is additive (a label appears alongside the icon at a larger
+  width) rather than a fundamentally different role. See
+  F-material-fab-extended for the trade-off.
+
+  NOT modelled this pass: the `regular` vs `small` FAB icon-only
+  sub-variation in Material 2026 spec (proposed but unshipped); drag
+  state (only surfaces for draggable FABs, out of scope); `as`
+  polymorphism (same deferral as Button / F-Radix-3 / F-shadcn-6).
+
+# ── API surface ──────────────────────────────────────────────────────────────
+
+properties:
+
+  variant:
+    type: enum
+    values: [primary, secondary, tertiary, surface]
+    default: primary
+    binds_to: fab_variant
+    description: >
+      FAB tonal variant — which colour role the FAB tints with.
+      Values overlap with `color_role` vocabulary by design
+      (F-material-2); the `binds_to: fab_variant` declaration
+      disambiguates. Each variant maps directly to a role at the
+      `container` slot — `primary` → `color.primary.container.*`,
+      `secondary` → `color.secondary.container.*`, etc. This is the
+      cleanest variant → role binding in the Big-DS series so far
+      because Material's FAB variant literally IS the role.
+
+  size:
+    type: enum
+    values: [small, medium, large, extended]
+    default: medium
+    binds_to: size
+    description: >
+      FAB scale axis. Material 3 specifies four sizes:
+        - small    — 40x40 dp, for compact screens or secondary FABs.
+        - medium   — 56x56 dp, the canonical FAB size.
+        - large    — 96x96 dp, for primary CTAs on larger screens.
+        - extended — variable width × 56 dp height, with a label
+                     alongside the icon. Material's "Extended FAB".
+      Size modulates shape-corner (per §13.3 value-map below) and
+      container dimensions (the latter NOT bound at CDF level; see
+      F-material-fab-sizing).
+
+  density:
+    type: enum
+    values: [comfortable, default, compact]
+    default: default
+    target_only: true
+    binds_to: density_step
+    description: >
+      Material 3 density-scale axis — same pattern as Button. See
+      Button's density property description and draft.8 §7.12 prose.
+      Third-DS data point already claimed by Button; FAB confirms the
+      flag's value on a second component within the same DS (not
+      strictly required for the multi-DS count, but cheap to declare
+      and keeps the spec's completeness contract honest).
+
+  disabled:
+    type: boolean
+    default: false
+    description: >
+      Native HTML `disabled` attribute. Suppresses pointer + keyboard
+      activation, moves the FAB out of the Tab sequence, and drives
+      the interaction state axis to `disabled`.
+
+# ── Runtime state axes ───────────────────────────────────────────────────────
+
+states:
+
+  interaction:
+    values: [enabled, hover, focus, pressed, disabled]
+    binds_to: pressable
+    token_expandable: true
+    description: >
+      Material 3's five-state pressable axis, same shape as Button.
+      Focus has a distinct state-layer-baked token (10% overlay);
+      hover is 8%, pressed is 10%, disabled is 12% container / 38%
+      text. All overlays are pre-composed by the toolchain into the
+      `.{state}` leaves of the `color.{role}.{slot}.{state}` grammar
+      — no opacity expression appears in this spec (F-material-0).
+
+# ── Output contract ──────────────────────────────────────────────────────────
+
+events:
+
+  click:
+    payload: MouseEvent
+    description: >
+      Native click event. Fires on pointer activation, Enter key, and
+      Space key. Not emitted when `disabled=true`.
+
+# ── Structure ────────────────────────────────────────────────────────────────
+
+anatomy:
+
+  container:
+    element: button
+    description: >
+      The rendered surface — native `<button type="button">`. Carries
+      the tinted fill, elevation shadow, focus ring, and shape-corner
+      radius. Material's reference implementation uses custom elements
+      per-variant (`<md-fab>`, `<md-branded-fab>`); CDF models the
+      primitive surface and leaves the wrapper to the Target generator.
+
+  stateLayer:
+    element: span
+    description: >
+      State-layer overlay child element — same pattern as Button.
+      Visible effect is pre-composed into the container's background
+      token; no CDF bindings on this anatomy part.
+
+  icon:
+    element: svg
+    description: >
+      Required icon glyph. FABs (unlike Buttons) are primarily
+      icon-driven — the `extended` size adds a label alongside the
+      icon, but icon is always present. Icon colour tracks the
+      container's paired on-slot via the variant axis.
+
+  label:
+    element: text
+    description: >
+      Visible label text — only rendered for `size: extended`. For
+      other sizes this anatomy part is absent from the DOM. A Target
+      generator reading this spec emits the label element
+      conditionally; CDF declares the part unconditionally and lets
+      the visibility rule live in the Component's `behavior:`
+      section (see below) or in the Target's rendering logic.
+
+# ── Visual contract ──────────────────────────────────────────────────────────
+# Similar structure to Button but variant binding is SIMPLER because
+# variant IS the role — no elevated/filled/text-style complexity.
+
+tokens:
+
+  container:
+    # ── Fill — variant × interaction ───────────────────────────────
+    # FAB uses the role's `container` slot (the lower-emphasis tonal
+    # fill — `primaryContainer` for primary FAB, `secondaryContainer`
+    # for secondary FAB, etc.). The variant-value maps 1:1 to a role.
+    background:
+      primary:   color.primary.container.{interaction}
+      secondary: color.secondary.container.{interaction}
+      tertiary:  color.tertiary.container.{interaction}
+      surface:   color.surface.container.{interaction}
+
+    # ── Label / icon colour — paired on-slot ────────────────────────
+    # The on-container slot provides the paired label/icon colour for
+    # each role.
+    color:
+      primary:   color.primary.onContainer.{interaction}
+      secondary: color.secondary.onContainer.{interaction}
+      tertiary:  color.tertiary.onContainer.{interaction}
+      surface:   color.surface.on.{interaction}
+
+    # ── Shape corner — varies by size ──────────────────────────────
+    # Material 3 FAB shape defaults:
+    #   small    → shape.corner.medium  (12dp)
+    #   medium   → shape.corner.large   (16dp)
+    #   large    → shape.corner.extraLarge (28dp)
+    #   extended → shape.corner.large   (16dp) — same as medium
+    border-radius:
+      small:    shape.corner.medium
+      medium:   shape.corner.large
+      large:    shape.corner.extraLarge
+      extended: shape.corner.large
+
+    # ── Elevation — base level3 for all variants; state variation
+    # ── via compound_states below (elevation × interaction axis) ──
+    box-shadow: elevation.level3
+
+    # ── Focus ring — single-ring per §13.5.1 ───────────────────────
+    outline-color: color.focus.outline
+
+    # ── Motion ──────────────────────────────────────────────────────
+    transition-duration: motion.duration.short4
+    transition-timing-function: motion.easing.standard
+
+  stateLayer:
+    # Intentionally empty — state-layer's visible effect is baked
+    # into the container.background token via the {interaction} axis.
+
+  icon:
+    # Icon colour tracks the container's on-slot per variant.
+    color:
+      primary:   color.primary.onContainer.{interaction}
+      secondary: color.secondary.onContainer.{interaction}
+      tertiary:  color.tertiary.onContainer.{interaction}
+      surface:   color.surface.on.{interaction}
+
+  label:
+    # Same as icon — tracks the on-slot per variant.
+    color:
+      primary:   color.primary.onContainer.{interaction}
+      secondary: color.secondary.onContainer.{interaction}
+      tertiary:  color.tertiary.onContainer.{interaction}
+      surface:   color.surface.on.{interaction}
+
+    # Typography — Material 3 Extended FAB label uses label.large.
+    # For non-extended FABs the label anatomy part is absent; the
+    # binding still declares the intended type so a Target generator
+    # has deterministic output for the extended variant without
+    # per-size divergence.
+    typography: typography.label.large
+
+# ── Compound states — elevation × interaction ───────────────────────────────
+# FAB elevation has FIVE distinct state values per variant but is
+# INVARIANT across variants (all FAB variants elevate the same way).
+# So compound_states `when:` block keys only on `interaction`, not on
+# variant — the pattern is simpler than Button's variant × interaction
+# compound.
+
+compound_states:
+  - when: { interaction: enabled }
+    tokens:
+      container:
+        box-shadow: elevation.level3
+
+  - when: { interaction: hover }
+    tokens:
+      container:
+        box-shadow: elevation.level4
+
+  - when: { interaction: focus }
+    tokens:
+      container:
+        box-shadow: elevation.level3
+
+  - when: { interaction: pressed }
+    tokens:
+      container:
+        box-shadow: elevation.level3
+
+  - when: { interaction: disabled }
+    tokens:
+      container:
+        box-shadow: elevation.level0
+
+# ── Behavioural contract ─────────────────────────────────────────────────────
+
+behavior:
+
+  pressable:
+    description: >
+      On pointer activation, Enter, or Space, the `click` event fires
+      and the consumer's handler runs. Same browser-native pressable
+      behaviour as Button.
+
+  disabled:
+    description: >
+      Same as Button — native `disabled` + `interaction: disabled`
+      state axis + pre-composed `.disabled` token leaves.
+
+  extended-label-visibility:
+    description: >
+      The `label` anatomy part is only rendered when `size: extended`.
+      For `size ∈ [small, medium, large]` the label is absent from
+      the DOM. Target generators consume this rule; CDF declares the
+      part unconditionally so the token bindings are deterministic
+      across all sizes.
+
+# ── Accessibility ────────────────────────────────────────────────────────────
+
+accessibility:
+  element: button
+  focus-visible: true
+  keyboard:
+    Enter: "Activate (fires click)"
+    Space: "Activate (fires click)"
+    Tab: "Native focus order"
+  aria:
+    - "aria-label: required when size ∈ [small, medium, large] (icon-only; no visible label text for screen readers)"
+    - "aria-disabled: true — when disabled=true"
+    - "role: inferred from `<button>`"
+  contrast: >
+    Same contrast guarantee as Button — Material's colour-role system
+    maintains WCAG AA at `standard` contrast, AAA at `medium`/`high`.
+    The FAB's paired container + on-container slots are specifically
+    designed for legibility at FAB sizes (16-28dp icon, 14sp label
+    for extended). Material's own spec owns the proof; CDF trusts
+    the Profile's theme-axis declaration.

@@ -1,0 +1,40 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Tag — minimal CDF Component (v1.0.0-draft.5)
+# ──────────────────────────────────────────────────────────────────────────────
+# Smallest legal Component. One property, one anatomy part, one token.
+# No states, no events, no derived, no slots. A Tag renders a colored box
+# whose color depends on its intent. That's the whole component.
+#
+# Interaction is inherited from `categories.Primitive.interaction: static`
+# in the Profile — Tag does not declare its own.
+
+cdf_version: "^1.0.0"
+name: Tag
+category: Primitive
+profile: ./minimal.profile.yaml
+description: >
+  A non-interactive label chip. Consumers pass an intent; the Tag
+  paints itself in the corresponding color. The smallest possible
+  component that still exercises property → token binding.
+
+properties:
+  intent:
+    type: enum
+    values: [emphasis, subtle]
+    default: emphasis
+    description: "Which color the Tag paints itself in."
+
+anatomy:
+  container:
+    element: span
+    description: "The visible tag. Everything the component renders is this one box."
+
+tokens:
+  container:
+    background: color.control.{intent}.background
+
+accessibility:
+  element: span
+  focus-visible: false
+  keyboard: {}
+  aria: []

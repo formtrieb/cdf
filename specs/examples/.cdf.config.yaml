@@ -1,0 +1,5 @@
+spec_directories:
+  - ./
+token_sources:
+  - ./
+profile_path: ./minimal.profile.yaml

@@ -1,0 +1,50 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Mini × Angular — minimal CDF Target (v1.0.0-draft.5)
+# ──────────────────────────────────────────────────────────────────────────────
+# Smallest legal implementation Target. Binds the Mini Profile to Angular,
+# declares where generated files go, how they're named, and the regen
+# policy (.ts aggressive; .html/.scss scaffold-once). No dependencies,
+# no presentation block — a one-framework, one-language pair.
+#
+# All Web naming derives from the Profile's `identifier: "mi"` via the
+# Identifier Template DSL (Target §5.6) — this Target only declares
+# explicit overrides where the default doesn't fit.
+
+name: "Mini × Angular"
+version: "1.0.0"
+profile: ./minimal.profile.yaml
+profile_version: ">=1.0.0 <2.0.0"
+category: implementation
+framework: angular
+framework_version: ">=17.0.0"
+description: "Minimal Angular bindings for the Mini DS — one component, one token family."
+
+output:
+  root: ./src/lib/mini
+  component_dir: "{component-kebab}"
+  files:
+    ts: "{component-kebab}.component.ts"
+    html: "{component-kebab}.component.html"
+    scss: "{component-kebab}.component.scss"
+
+generation:
+  ts: regen-aggressive   # spec is source of truth; overwrite on every generate
+  html: scaffold-once    # written once, then human-owned
+  scss: scaffold-once
+
+api:
+  class_casing: PascalCase
+  selector_pattern: "{identifier}-{component-kebab}"   # → "mi-tag"
+  input_casing: camelCase
+
+styling:
+  # Both prefixes use defaults derived from Profile.naming.identifier ("mi"):
+  #   css_prefix:   "{identifier}-"   → "mi-"
+  #   token_prefix: "--{identifier}-" → "--mi-"
+  # Declared explicitly here so the example shows the canonical Web names.
+  css_prefix: "mi-"
+  token_prefix: "--mi-"
+  strategy: scss-per-component
+
+composition:
+  slot_transport: ng-content

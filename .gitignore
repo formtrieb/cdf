@@ -1,0 +1,19 @@
+# OS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
+.env
+.env.*
+
+# Per-example upstream clones (downloaded on-demand per example's Step 0)
+examples/*/.primer-primitives/
+examples/*/.material3-tokens/
+examples/*/.uswds/
+
+# Node artefacts (if any tooling is added later)
+node_modules/
+dist/

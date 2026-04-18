@@ -1,0 +1,179 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# shadcn/ui Badge — CDF Component (foreign-DS validation, token-bridge focus)
+# CDF Component Format v1.0.0-draft.6
+#
+# Source:
+#   https://ui.shadcn.com/docs/components/badge
+#   https://github.com/shadcn-ui/ui/tree/main/apps/v4/registry/new-york-v4/ui/badge.tsx
+#
+# Smallest shadcn surface that still exercises the token-bridge:
+# four variants, no sizes, no states. Serves as a cross-check for
+# Button — does the Profile's pair-pattern (bg + fg tokens travelling
+# together) declare consistently when two components reach for it?
+# That is the F-shadcn-0 verdict's decisive test.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+cdf_version: "^1.0.0-draft"
+name: Badge
+category: Primitive
+profile: ../shadcn.profile.yaml
+
+description: >
+  Small inline label for status, count, or categorical annotation.
+  Non-interactive by default (Primitive category, `static` interaction
+  pattern). Four variants drive colour only; no size axis, no state
+  variation, no keyboard or pointer surface.
+
+  Badge is typically wrapped around short text or a single icon, used
+  in tables, cards, and lists to mark status ("New", "Pending",
+  "Critical"). When a consumer needs interactive behaviour (e.g.
+  removable tag), they use `asChild` to project the Badge's styling
+  onto a `<button>` or `<a>`; the Badge itself remains a decorative
+  `<span>` at the Component level.
+
+  NOT modelled: size axis (shadcn Badge has none), icon composition
+  (same — children are arbitrary), pending/loading (N/A for a label).
+
+# ── API surface ──────────────────────────────────────────────────────────────
+# Three properties — the variant axis, the polymorphism flag (same
+# Radix-3 deferral as Button), and nothing else. Intentionally minimal
+# to isolate the variant-token binding as the test subject.
+
+properties:
+
+  variant:
+    # Same vocab-shorthand workaround as Button — see F-shadcn-1. Values
+    # are a subset of the Profile's `variant` vocabulary (no `ghost`,
+    # no `link` — those are Button-specific and have no Badge analogue).
+    type: enum
+    values: [default, secondary, destructive, outline]
+    default: default
+    description: >
+      Visual role. Maps to a background + foreground token pair from
+      the Profile's standalone_tokens, identical to Button's first
+      four variants:
+        - default     → color.primary       + color.primaryForeground
+        - secondary   → color.secondary     + color.secondaryForeground
+        - destructive → color.destructive   + (white, see F-shadcn-4)
+        - outline     → color.background    + color.foreground + border
+      The pairing is convention-only; the format does not enforce
+      that Badge's bindings align with Button's for the same variant
+      name. The consistency across the two specs is this port's
+      F-shadcn-0 test.
+
+  asChild:
+    type: boolean
+    default: false
+    description: >
+      Same Radix Slot polymorphism as Button. When true, Badge's
+      styling is projected onto a consumer-provided child (often
+      `<a>` for a clickable tag, or `<button>` for a removable one).
+      The Component itself declares no interactive behaviour; the
+      consumer's chosen element determines the surface. Same
+      F-Radix-3 deferral — not re-logged as a shadcn finding.
+
+# ── Runtime state axes ───────────────────────────────────────────────────────
+# None beyond the category default. Primitive's `static` pattern declares
+# a single state (`enabled`) — declared implicitly via the category;
+# no `states:` block is needed here. A Badge has no hover, no pressed,
+# no disabled — it is pure decoration.
+
+# ── Output contract ──────────────────────────────────────────────────────────
+# No events. Badge emits nothing at the Component level; when asChild
+# delegates to an interactive element, that element's native events
+# apply — not Badge's concern.
+
+# ── Structure ────────────────────────────────────────────────────────────────
+
+anatomy:
+
+  container:
+    element: span
+    description: >
+      The rendered surface — a `<span>` by default (Primitive
+      category default per Profile). Polymorphic when `asChild=true`
+      (see F-Radix-3). Carries the variant utility classes and radius.
+      Children are consumer-provided content (label text, tiny icon).
+
+# ── Visual contract ──────────────────────────────────────────────────────────
+# Same (γ) bridge as Button. The interesting observation — this block
+# binds the SAME four variants' background+color pairs as Button's
+# first four, using the SAME standalone_tokens. The pairing convention
+# is duplicated in two components; nothing structural keeps them in
+# sync. See F-shadcn-0 audit points and F-shadcn-6 below.
+
+tokens:
+
+  container:
+
+    # Background — four variants, two use surface colour (default=primary,
+    # secondary=secondary), one uses destructive, one is transparent
+    # (outline). Identical structure to Button's first four variants.
+    background:
+      default: color.primary
+      secondary: color.secondary
+      destructive: color.destructive
+      outline: color.background
+
+    # Foreground (text) — paired with background above. Note that
+    # `destructive` falls back to `color.primaryForeground` (white-ish)
+    # here as in Button; shadcn's own code uses literal white for both.
+    color:
+      default: color.primaryForeground
+      secondary: color.secondaryForeground
+      destructive: color.primaryForeground    # see F-shadcn-4
+      outline: color.foreground
+
+    # Border — outline only; default/secondary/destructive are
+    # border-less (`border-transparent` in shadcn). Same shape as
+    # Button's border-color map — also a data point for F-shadcn-6.
+    border-color:
+      outline: color.border
+      default: none
+      secondary: none
+      destructive: none
+
+    # Border radius — same radius.default singleton as Button. Badge
+    # is typically pill-shaped in shadcn via additional classes, but
+    # the Component-level binding stays `radius.default`; the "pill"
+    # comes from Tailwind utilities at the Target layer. Another
+    # F-shadcn-2 instance — shape ↔ utility bundle, not token.
+    border-radius: radius.default
+
+    # No outline-color (no focus ring — Badge is not focusable by
+    # default). No height/padding bindings — utility-class owned,
+    # same as Button's size axis.
+
+# ── Behavioural contract ─────────────────────────────────────────────────────
+# Empty — Badge is static. Listed explicitly so readers see the
+# absence is intentional, not forgotten.
+
+behavior:
+
+  static:
+    description: >
+      Badge ships no runtime behaviour. No event listeners, no state
+      mutation, no keyboard handling. The component is a styled
+      wrapper; all interaction comes from the polymorphic child (via
+      asChild) or from the surrounding context.
+
+# ── Accessibility ────────────────────────────────────────────────────────────
+# Decorative by default — the `<span>` adds no semantic role. Consumers
+# needing semantic status information (screen reader announcement of
+# "new", "critical") add `role="status"` or an `aria-label` themselves;
+# shadcn does not inject it. Documenting this explicitly so the spec
+# is honest about what Badge does and does NOT do for a11y.
+
+accessibility:
+  element: span
+  focus-visible: false
+  keyboard: {}
+  aria:
+    - "role: inferred from `<span>` (none); consumers MAY add role=\"status\" for announceable badges"
+    - "aria-label: consumer-provided when the visual text is abbreviated"
+  contrast: >
+    Badge text sits on a small coloured surface; WCAG 1.4.11 non-text
+    contrast (3:1) applies to the variant backgrounds against their
+    surrounding context. WCAG 1.4.3 (4.5:1 small text) applies to the
+    label against its background. Both are consumer responsibilities
+    — the DS does not own the colour values. See F-shadcn-0.

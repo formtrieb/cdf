@@ -1,0 +1,133 @@
+# Component Description Format (CDF)
+
+**A declarative, design-system-agnostic format for describing UI
+components — independently of any tool, framework, or platform that
+consumes them.**
+
+CDF sits alongside [DTCG](https://www.designtokens.org/) at the
+component-contract layer: DTCG describes tokens (atomic design
+decisions), CDF describes how those tokens compose into components
+(properties, states, events, anatomy, accessibility, target output).
+
+- **Three-format family** — `CDF Component` (per-component instance)
+  + `CDF Profile` (DS-level vocabulary & token grammar) + `CDF Target`
+  (per-framework output conventions). Each is its own document, its
+  own version, its own validator contract.
+- **LLM-first authoring** — every field is semantic and documented;
+  an LLM can read a Profile + one existing Component and author the
+  next Component correctly. Five foreign-DS validation passes
+  demonstrate this in practice.
+- **Token-driven** — every visual value binds to a token path that
+  resolves to a single DTCG value at build time. The format forbids
+  runtime transformations (opacity math, `color-mix()`, derived
+  shades) inside specs — state variations are distinct tokens with
+  values baked in at build time.
+
+## Status
+
+**v1.0.0 — stable.** Frozen 2026-04-18 after five consecutive
+foreign-DS validation passes without structural format change.
+
+| Validation pass | Architecture | Format-change budget |
+|-----------------|--------------|----------------------|
+| [Radix Primitives](./examples/radix/) | headless (no tokens) | 0/2 + 0/1 |
+| [shadcn/ui](./examples/shadcn/) | token-bridge-external (consumer-owned CSS vars) | 0/2 + 0/1 |
+| [Primer](./examples/primer/) | token-bridge-DTCG (DS-owned real DTCG) | 0/2 + 0/1 |
+| [Material 3](./examples/material3/) | token-bridge-exotic (toolchain-generated, state-layered) | 0/2 + 0/1 |
+| [USWDS](./examples/uswds/) | accessibility-first (OS-signal preferences, conditional ARIA) | 0/2 + 0/1 |
+
+**Zero structural format change across five passes.** The hypothesis
+the series tested — *"CDF describes the practical range of DS
+architectures without bending"* — held. See
+[`evidence/`](./evidence/) for the full per-pass findings.
+
+## Read the spec
+
+Start here:
+
+1. **[CDF-ARCHITECTURE.md](./specs/CDF-ARCHITECTURE.md)** — why three
+   formats, how they relate, who reads what. Non-normative tour.
+2. **[CDF-COMPONENT-SPEC.md](./specs/CDF-COMPONENT-SPEC.md)** — the
+   per-component format (properties, states, events, anatomy, tokens,
+   behavior, accessibility, CSS). Most authoring happens here.
+3. **[CDF-PROFILE-SPEC.md](./specs/CDF-PROFILE-SPEC.md)** — the DS
+   constitution (vocabularies, token grammar, theming axes,
+   interaction patterns, accessibility defaults).
+4. **[CDF-TARGET-SPEC.md](./specs/CDF-TARGET-SPEC.md)** — per-(DS ×
+   framework) output conventions for code generators.
+
+A minimal end-to-end example lives at
+[`specs/examples/`](./specs/examples/) — one `minimal.profile.yaml`
++ `minimal.component.yaml` + `minimal.target.yaml` that parse
+clean against the spec's validator.
+
+## Reference implementation
+
+The TypeScript parser + validator + MCP server lives in a sibling
+repository: **[formtrieb/cdf-core](https://github.com/formtrieb/cdf-core)**
+(npm: `@formtrieb/cdf-core`). Install:
+
+```bash
+pnpm add @formtrieb/cdf-core
+# or
+npm install @formtrieb/cdf-core
+```
+
+The spec in this repo is the authority; cdf-core tracks it and
+implements the rules.
+
+## The five-DS evidence suite
+
+Each example under [`examples/`](./examples/) is a complete port of a
+real design system's components (Button plus one companion) to CDF.
+Every port produced a `findings.md` log of friction encountered;
+the summaries live under [`evidence/`](./evidence/) as
+`BIG-DS-{DS}-BRIEF.md` (the mission-and-scope handoff for the pass)
+and `BIG-DS-{DS}-FINDINGS.md` (the one-page verdict).
+
+These aren't theoretical examples. They are the pre-shipping
+stress tests that informed every format decision; every `findings.md`
+either triggered a format refinement (draft.7 Token-Driven Principle
+formalisation, draft.8 `property.target_only` field, §13.5.1
+single-ring focus note, §5.6 Token-key vs Semantic-API naming) or
+confirmed that the existing format absorbed the DS without bending.
+
+Each individual pass's `BIG-DS-{DS}-BRIEF.md` + `FINDINGS.md` pair in
+[`evidence/`](./evidence/) tells the story of that pass's methodology
+and outcome. The `CHANGELOG.md` at the repo root captures which
+spec-text changes each draft round introduced.
+
+## Relationship to DTCG
+
+CDF and DTCG are complementary, not competing:
+
+- **DTCG** standardises *tokens*: how to write `{ "$value": "#0066cc", "$type": "color" }` files that many tools can consume.
+- **CDF** standardises *components*: how to declare that `Button.variant=primary` binds `container.background-color` to the token path `color.button.primary.bg`.
+
+A CDF Profile declares `dtcg_version:` and maps its `token_grammar`
+to DTCG `$type` values. A conforming toolchain reads both side by
+side; each has its own typing conventions and its own contribution
+to the output.
+
+## License
+
+Apache-2.0 — see [LICENSE](./LICENSE). Both the spec text and the
+example profiles/specs fall under Apache-2.0.
+
+Third-party upstream material (foreign-DS token sources cloned
+on-demand per each example's Step 0) carries its original upstream
+license; see per-example READMEs.
+
+## Contributing
+
+CDF is pre-1.0-of-adoption — format is stable, ecosystem is young.
+Issues and PRs are welcome. Format-changing PRs are assessed
+against the same standard the format currently holds itself to: is
+there **multi-DS evidence** that the change is needed? Single-DS
+observations become doc-polish items; multi-DS patterns become
+additive format extensions (never breaking removals in minor
+versions).
+
+See [`evidence/`](./evidence/) for the shape of evidence the format
+was validated against; a similar one-page findings doc accompanies
+significant PRs.

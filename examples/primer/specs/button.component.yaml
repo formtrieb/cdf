@@ -1,0 +1,242 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Primer Button — CDF Component (foreign-DS validation, DTCG-bridge focus)
+# CDF Component Format v1.0.0-draft.7
+#
+# Source:
+#   https://primer.style/components/button
+#   https://github.com/primer/primitives, src/tokens/component/button.json5
+#   (pinned at c19e78df9f3b98a9be4ee5da8bd7f8cb5b74298f — see F-primer-0)
+#
+# Primer's canonical interactive control. Every variant × state cell
+# has its own DTCG token — the ideal case for CDF's Token-Driven
+# Principle (draft.7 §1.1 #2). If CDF-CON-008 fires on this spec, it
+# means either (a) the Profile missed a Primer token, or (b) draft.7's
+# principle prose has a loophole. Expected: zero hits.
+#
+# (The draft.7 plan called this rule CDF-CON-006; it shipped as
+# CDF-CON-008 because 006/007 were already taken. Both identifiers
+# refer to the same `no-raw-unitless-tokens` check.)
+#
+# Scope choices (per brief Step 2):
+#   - variant ∈ {default, primary, danger, invisible, outline}. `inactive`
+#     + `star` exist in the upstream token tree but are out of modelled
+#     scope (F-primer-0 documents).
+#   - size ∈ {small, medium, large}. No per-size colour tokens in Primer;
+#     sizing lives in non-colour DS tokens — modelled as an unbound
+#     property axis (F-primer-5, second-DS evidence for utility-class
+#     axis pattern seen in F-shadcn-2).
+#   - disabled → state, not a property (same as shadcn Button).
+#   - loading — Primer's Button ships a native pending state with a
+#     spinner. Out of scope for this pass to keep the tokens: block
+#     focused. Whether pending fits the states.pending idiom or needs
+#     a property+state is left as F-primer-4 open question.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+cdf_version: "^1.0.0-draft"
+name: Button
+category: Interactive
+profile: ../primer.profile.yaml
+
+description: >
+  Primer's standard labelled action trigger. Five variants, three
+  sizes, full interaction-state coverage. Every variant × state cell
+  binds to a discrete DTCG token — no runtime opacity math, no
+  `color-mix()`, no derived alpha (cf. F-shadcn-3). This is the
+  ideal case for the Token-Driven Principle (CDF Component §1.1 #2,
+  draft.7).
+
+  NOT modelled this pass: the `inactive` and `star` variants (they
+  exist in Primer's token tree but are special-purpose), per-size
+  tokens (Primer owns sizing but via non-colour tokens outside this
+  pass's Profile grammar), pending/loading state (see F-primer-4),
+  `as` polymorphism (Primer's equivalent of shadcn's `asChild` /
+  Radix Slot — skipped per brief, same category as F-Radix-3).
+
+# ── API surface ──────────────────────────────────────────────────────────────
+
+properties:
+
+  variant:
+    # Same vocab-shorthand workaround as shadcn — cdf-core's
+    # property-type-valid rule does not implement §7.2's profile-
+    # vocabulary shorthand. Values are duplicated from the Profile's
+    # `button_variant` vocabulary. This is F-shadcn-1 carrying over
+    # (no new finding — same validator TODO). Axis name differs from
+    # the vocabulary name (`variant` vs `button_variant`), so
+    # `binds_to:` is declared per CDF-STR-012.
+    type: enum
+    values: [default, primary, danger, invisible, outline]
+    default: default
+    binds_to: button_variant
+    description: >
+      Visual and semantic role. Maps 1:1 to a token-tree variant key
+      in @primer/primitives src/tokens/component/button.json5. The
+      grammar axis `color.button.{variant}.{element}.{state}` resolves
+      against this property.
+        - default   — low-emphasis grey fill, reversible actions.
+        - primary   — high-emphasis green fill, main CTA per view.
+        - danger    — destructive red fill, irreversible destructive
+                      actions.
+        - invisible — no fill at rest; hover surface only. Toolbar /
+                      icon-with-label usage.
+        - outline   — transparent fill + bordered. Legacy / niche;
+                      kept in scope because the token tree ships it.
+
+  size:
+    type: enum
+    values: [small, medium, large]
+    default: medium
+    binds_to: button_size
+    description: >
+      Scale axis. Primer ships per-size height/padding/gap/font via
+      component-sizing tokens (`control.small.*`, `control.medium.*`,
+      `control.large.*`) that live OUTSIDE this Profile's grammar.
+      The `tokens:` block below therefore has no `size`-keyed bindings
+      — the axis is declared here for API-surface completeness but is
+      unbound at the Component layer. Second-DS instance of the
+      utility-class axis pattern F-shadcn-2 first logged; logged here
+      as F-primer-5 (the two-DS-evidence trigger the shadcn pass
+      designated).
+
+  disabled:
+    type: boolean
+    default: false
+    description: >
+      Native HTML `disabled` attribute. Suppresses pointer + keyboard
+      activation, moves the button out of the Tab sequence, and drives
+      the `interaction` state to `disabled` (which in turn resolves
+      every bound token to its `.disabled` leaf per the Profile's
+      pressable pattern token_mapping).
+
+# ── Runtime state axes ───────────────────────────────────────────────────────
+
+states:
+
+  interaction:
+    values: [enabled, hover, pressed, disabled]
+    binds_to: pressable
+    token_expandable: true
+    description: >
+      Standard pressable state axis from the Profile. Resolves against
+      the `{state}` slot of the `color.button.*` grammar via the
+      Profile's pressable.token_mapping:
+        enabled → rest    hover → hover
+        pressed → active  disabled → disabled
+
+# ── Output contract ──────────────────────────────────────────────────────────
+
+events:
+
+  click:
+    payload: MouseEvent
+    description: >
+      Native click event. Fires on pointer activation, Enter key, and
+      Space key (browser-native `<button>` behaviour). Not emitted
+      when `disabled=true`.
+
+# ── Structure ────────────────────────────────────────────────────────────────
+
+anatomy:
+
+  container:
+    element: button
+    description: >
+      The rendered surface — native `<button type="button">`. Carries
+      the fill, border, focus ring, and size classes. Primer's React
+      wrapper also supports an `as` polymorphism prop (render as `<a>`,
+      etc.) — not modelled here, same deferral as Radix F-Radix-3.
+
+  label:
+    element: text
+    description: >
+      Visible button text. Primer-style Buttons always have a text
+      label (icon-only is a separate IconButton component in
+      @primer/react — not this spec).
+
+# ── Visual contract — the Token-Driven Principle under load ──────────────────
+# Every binding is a single token path that resolves to ONE DTCG value
+# at token-build time (draft.7 §13 intro). Placeholders: {variant}
+# (bound to §7 property), {state} (bound to §8 state axis). No raw
+# values, no unitless numerics, no runtime transformations.
+#
+# §13.1 rule 3 allows grammar-slot placeholders when the name matches
+# a grammar axis. `color.button.{variant}.{element}.{state}` → the
+# Profile grammar has axes named {variant, element, state}; {element}
+# is bound by the STRUCTURAL binding key (background=bgColor, etc.).
+
+tokens:
+
+  container:
+    # Fill — varies by variant × state.
+    background: color.button.{variant}.bgColor.{interaction}
+
+    # Stroke — Primer's default/primary/danger have borderColor tokens
+    # that track the fill; invisible has none at rest (hover brings a
+    # subtle surface); outline has an explicit stroke.
+    border-color: color.button.{variant}.borderColor.{interaction}
+
+    # Text + inline glyph colour.
+    color: color.button.{variant}.fgColor.{interaction}
+
+    # Corner radius — single standalone_token; invariant across
+    # variants and states. Primer ships `sizes.base.size.0.small` or
+    # similar internally; the Profile surfaces it as `radius.default`.
+    border-radius: radius.default
+
+    # Focus ring — plain outline-color binding from the singleton
+    # focus token. Single-ring pattern, not §13.5 double-ring (same
+    # observation as F-shadcn-5; Primer confirms a SECOND DS using
+    # single-ring focus). Logged as F-primer-4.
+    outline-color: color.focus.outline
+
+    # Sizing axis — INTENTIONALLY UNBOUND. See F-primer-5 in findings.
+    # Adding raw values here would falsely claim this spec owns
+    # dimensions Primer delegates to sizing tokens outside the modelled
+    # grammar. Keeping the `size` property declared + `tokens:`
+    # silent is the honest encoding.
+
+  label:
+    # Label colour re-uses the container's fgColor binding — §13.1
+    # allows a child anatomy part to reference the same grammar slot
+    # as its parent. Stays synchronised with the container via the
+    # shared {variant} placeholder.
+    color: color.button.{variant}.fgColor.{interaction}
+
+# ── Behavioural contract ─────────────────────────────────────────────────────
+
+behavior:
+
+  pressable:
+    description: >
+      On pointer activation, Enter, or Space, the `click` event fires
+      and the consumer's handler runs. No component-internal state
+      ties to activation; hover/pressed/focus-visible are browser-
+      pseudoclass-driven, not JS-driven.
+
+  disabled:
+    description: >
+      Suppresses pointer + keyboard activation via native `disabled`.
+      Also drives the interaction state to `disabled`; per the
+      Profile's pressable.token_mapping, every bound token resolves
+      to its `.disabled` leaf.
+
+# ── Accessibility ────────────────────────────────────────────────────────────
+
+accessibility:
+  element: button
+  focus-visible: true
+  keyboard:
+    Enter: "Activate (fires click)"
+    Space: "Activate (fires click)"
+    Tab: "Native focus order"
+  aria:
+    - "aria-disabled: true — when disabled=true (in addition to native disabled attr)"
+    - "role: inferred from `<button>`"
+  contrast: >
+    Each variant × state cell binds to a pre-validated fg/bg pair in
+    Primer's DTCG tree. Primer's token-system owns the contrast
+    guarantee per mode — see `@primer/primitives` README for the WCAG
+    compliance commitment. For the modelled variants + states, every
+    pairing in component/button.json5 resolves through `{control.*}`
+    or `{base.color.*}` references whose light/dark/contrast-mode
+    values are audited upstream.

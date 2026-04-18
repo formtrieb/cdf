@@ -1,0 +1,164 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Primer Label — CDF Component (foreign-DS validation, DTCG-bridge focus)
+# CDF Component Format v1.0.0-draft.7
+#
+# Source:
+#   https://primer.style/components/label
+#   https://github.com/primer/primitives, src/tokens/component/label.json5
+#   (pinned at c19e78df9f3b98a9be4ee5da8bd7f8cb5b74298f — see F-primer-0)
+#
+# Small static surface — variant-driven colour only, no size, no state,
+# no keyboard or pointer interaction. The counterpart to Button's
+# multi-axis stress test: Label checks whether the (γ)-via-grammar
+# bridge stays clean for a component that exercises only the variant
+# axis. Also the pair-pattern cross-check — Label's bg/fg/border
+# bindings ALL reference the same `color.label.{scheme}.*` grammar,
+# so the pairing is one placeholder resolution away from synchronised.
+#
+# Scope choices (per brief Step 3):
+#   - scheme-keyed variants (colour names, not semantic names). Primer's
+#     React wrapper maps its public `variant=accent|success|…` onto
+#     these colour keys internally; that mapping is React-layer and is
+#     documented in F-primer-6.
+#   - seven-scheme subset of Primer's 19-colour Label family:
+#     {gray, blue, green, yellow, orange, red, purple}. Covers the
+#     semantic spectrum that public Primer docs surface via the
+#     `variant` prop. Remaining colours (auburn, brown, lemon, olive,
+#     lime, pine, teal, cyan, indigo, plum, pink, coral) are valid
+#     Primer tokens but out of this pass's modelled scope.
+#   - No `as` polymorphism modelled — same deferral as Button / shadcn /
+#     Radix.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+cdf_version: "^1.0.0-draft"
+name: Label
+category: Primitive
+profile: ../primer.profile.yaml
+
+description: >
+  Primer's small inline label — status / category / count annotation
+  sitting near some other element. Primer ships it as a Primitive;
+  the Component itself has no pointer or keyboard surface (tokens
+  carry hover/active entries for future `ClickableLabel` usage, but
+  this spec never addresses those states).
+
+  The scheme axis is keyed by COLOUR (gray, blue, green, …) because
+  that is how Primer's token tree keys label.json5. The semantic
+  `variant` prop that `@primer/react` exposes
+  (`accent | success | attention | severe | danger | done | sponsors`)
+  is a React-layer wrapper that maps onto these colour-keyed tokens
+  internally — see findings F-primer-6 for the mapping table and the
+  argument that this belongs at the component-library layer rather
+  than in the CDF surface.
+
+  NOT modelled: size axis (Primer Label has none), the full 19-colour
+  scheme matrix (only the semantic-spectrum subset), hover/active
+  states (exist in tokens but not exercised by a Primitive Label).
+
+# ── API surface ──────────────────────────────────────────────────────────────
+# One property — the scheme axis. No size. No disabled, no interaction.
+# `binds_to: label_scheme` per CDF-STR-012 because the axis name
+# differs from the vocabulary name.
+
+properties:
+
+  scheme:
+    # Same F-shadcn-1 vocab-shorthand workaround (inline values
+    # duplicated from the Profile vocabulary because property-type-
+    # valid doesn't implement §7.2 shorthand).
+    type: enum
+    values: [gray, blue, green, yellow, orange, red, purple]
+    default: gray
+    binds_to: label_scheme
+    description: >
+      Colour family. Maps 1:1 to a top-level key in
+      @primer/primitives src/tokens/component/label.json5:
+        gray    — neutral / default    (Primer-React equivalent: default)
+        blue    — accent               (accent)
+        green   — positive / success   (success)
+        yellow  — warning / attention  (attention)
+        orange  — caution / severe     (severe)
+        red     — destructive          (danger)
+        purple  — completion / done    (done)
+      Public Primer docs surface these as `variant=<semantic>`; the
+      token tree keys by colour. F-primer-6 notes the semantic↔colour
+      mapping as a component-library-layer concern.
+
+# ── Runtime state axes ───────────────────────────────────────────────────────
+# None. Label is Primitive (`static` interaction pattern); the
+# category's single `enabled` state is implicit.
+
+# ── Output contract ──────────────────────────────────────────────────────────
+# No events. Pure decoration.
+
+# ── Structure ────────────────────────────────────────────────────────────────
+
+anatomy:
+
+  container:
+    element: span
+    description: >
+      A `<span>` carrying fill, border, and text colour. Primer's React
+      Label renders this as a span by default. Children are consumer-
+      provided — typically a short text node like "New", "Beta",
+      "Deprecated".
+
+  label:
+    element: text
+    description: >
+      The inline text content. No inline-glyph slot at the CDF level;
+      Primer's React Label accepts a leading icon via children
+      composition, which is a consumer-layer pattern outside the
+      spec's declarative surface.
+
+# ── Visual contract — (γ)-via-grammar under the variant-only test ────────────
+# Every binding uses the SAME grammar-slot placeholder `{scheme}`,
+# bound to the `scheme` property. The pair pattern (bg + fg + border
+# sharing one axis) is structurally enforced: changing the `scheme`
+# property resolves all three bindings against the same Primer token
+# tree key. Compare to shadcn's F-shadcn-6 where the pairing had to
+# be manually maintained — Primer's grammar makes it automatic.
+#
+# `.rest` is the only state addressed. Label is a Primitive, so there
+# is no interaction state axis to drive `{state}` variation. We bind
+# to the concrete `rest` leaf per grammar, not via a placeholder.
+
+tokens:
+
+  container:
+    background: color.label.{scheme}.bgColor.rest
+    border-color: color.label.{scheme}.borderColor.rest
+    color: color.label.{scheme}.fgColor.rest
+    border-radius: radius.default
+
+  label:
+    # Label text colour shares the container's fgColor binding —
+    # synchronised automatically via the shared {scheme} placeholder
+    # (the pair pattern structural enforcement mentioned above).
+    color: color.label.{scheme}.fgColor.rest
+
+# ── Behavioural contract ─────────────────────────────────────────────────────
+
+behavior:
+
+  static:
+    description: >
+      Label ships no runtime behaviour. No event listeners, no state
+      mutation, no keyboard handling. Pure decoration; the consumer
+      provides all surrounding semantics.
+
+# ── Accessibility ────────────────────────────────────────────────────────────
+
+accessibility:
+  element: span
+  focus-visible: false
+  keyboard: {}
+  aria:
+    - "role: inferred from `<span>` (none). Primer's React Label accepts a `title=` prop consumed as a tooltip — out of CDF scope."
+    - "aria-label: consumer-provided when label text is abbreviated (e.g. 'New' vs 'New release')."
+  contrast: >
+    Primer's DTCG tree audits fg/bg contrast per colour at upstream
+    build time — each scheme's `bgColor.rest` and `fgColor.rest`
+    are guaranteed to meet WCAG AA 4.5:1 for small text in Light
+    and Dark modes. No consumer-side responsibility (unlike
+    shadcn — cf. F-shadcn-0 note on DS-ownership).

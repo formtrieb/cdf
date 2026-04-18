@@ -1,0 +1,23 @@
+spec_directories:
+  - ./specs
+
+# Primer (@primer/primitives) is the third Big-DS foreign-DS pass.
+# Unlike shadcn (flat CSS-var names) Primer ships a structured DTCG
+# token tree — real `$value` / `$type` / `$description` / `$extensions`,
+# files under `component/*.json5` keyed by component name. This Profile
+# adopts that surface via the (γ) prose-ownership principle applied to
+# `token_grammar` entries (shift from shadcn's standalone_tokens-based
+# (γ) — documented in findings.md F-primer-1). Prefix `pr`.
+profile_path: ./primer.profile.yaml
+
+# Legacy `profile:` block — kept for validator compatibility, mirrors
+# the shape used in radixTests / shadcnTests. No token_pattern_* because
+# Primer's grammar is component-scoped (see the Profile's token_grammar
+# entries).
+profile:
+  prefix: pr
+  token_pattern_interactive: ""
+  token_pattern_status: ""
+  theme_axes:
+    semantic: [Light, Dark]
+  placeholder_values: []

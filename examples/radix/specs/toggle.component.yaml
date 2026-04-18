@@ -1,0 +1,179 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Radix Toggle — CDF Component (foreign-DS validation)
+# CDF Component Format v1.0.0-draft.5
+#
+# Source: https://www.radix-ui.com/primitives/docs/components/toggle
+#
+# Radix Toggle is a two-state button. Pressing flips an on/off axis, surfaced
+# via `data-state="on|off"` and `aria-pressed`. Ported to stress
+# `mirrors_state:` (§7.11) in a headless context — the mirrored state axis
+# has no tokens to drive, which is novel relative to Formtrieb's Checkbox.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+cdf_version: "^1.0.0-draft"
+name: Toggle
+category: Interactive
+profile: ../radix.profile.yaml
+description: >
+  Two-state button. One press flips `pressed` from false to true (and back).
+  The component ships behaviour, keyboard handling, and ARIA wiring; it
+  ships NO paint — consumers style freely, typically keying off
+  `data-state="on|off"` and `data-disabled`.
+
+  Use Toggle when the action is a persistent binary choice the user can
+  flip from pressed-in / pressed-out — a bold/italic button in a toolbar,
+  a "show/hide comments" switch inline with content. NOT to be confused
+  with a Checkbox (form field, submits a value), a Switch (usually used
+  for settings and slides left/right visually), or a ToggleGroup (multiple
+  Toggles with shared selection semantics — a separate Radix primitive).
+
+  Radix additionally offers a form-submitting variant via `name` and
+  `value` props. Those are NOT modelled here; this port is the minimal
+  surface needed to exercise the `mirrors_state:` contract in a headless
+  DS.
+
+# ── API surface ──────────────────────────────────────────────────────────────
+
+properties:
+
+  pressed:
+    type: boolean
+    default: false
+    bindable: two-way
+    mirrors_state: toggleable
+    description: >
+      The on/off state. Mirrored to the `toggleable` state axis
+      (§7.11) so the runtime axis name matches the Profile pattern
+      while the consumer-facing prop keeps Radix's `pressed` naming.
+      Two-way bindable — the component emits `pressedChange` on every
+      user-driven toggle. Auto-promoted at the component boundary via
+      the mirror (Profile §10.6) — no explicit `promoted:` needed.
+
+  defaultPressed:
+    type: boolean
+    default: false
+    description: >
+      Initial value for uncontrolled usage. When `pressed` is not
+      bound, the component manages the state internally and
+      `defaultPressed` seeds it. When `pressed` IS bound, this prop
+      is ignored. The pair is a controlled/uncontrolled idiom from
+      React — see findings F-Radix-5, CDF's `mutual_exclusion:` does
+      not quite fit because the relation is asymmetric (bound
+      `pressed` overrides `defaultPressed`, but the inverse is
+      meaningless).
+
+  disabled:
+    type: boolean
+    default: false
+    description: >
+      Inactivates the Toggle. Radix surfaces this as the native
+      `disabled` HTML attribute on the underlying `<button>`, plus a
+      `data-disabled` mirror for CSS hooks. Drives the `interaction`
+      state axis to `disabled` at runtime — the component does not
+      expose a direct mechanism for the consumer to set the
+      interaction axis, so `disabled` serves that bridge.
+
+# ── Runtime state axes ───────────────────────────────────────────────────────
+# Both axes declared `token_expandable: false` — Radix ships no tokens,
+# so no state value maps to a token-path segment. See findings F-Radix-6
+# on whether `token_expandable:` should remain required when the Profile
+# has an empty `token_grammar`.
+
+states:
+
+  interaction:
+    values: [enabled, hover, pressed, disabled]
+    binds_to: pressable
+    token_expandable: false
+    description: >
+      Pointer/keyboard interaction surface inherited from the
+      `pressable` pattern (explicit `binds_to:` per Component §8,
+      satisfying the reserved-vocabulary-isolation rule). Note the
+      unfortunate name collision with the `pressed` PROPERTY
+      (Radix's public API): this axis's `pressed` value refers to
+      the momentary pointer-down state, NOT the on/off toggle axis.
+      The toggle state lives on `toggleable` below.
+
+  toggleable:
+    values: [false, true]
+    default: false
+    token_expandable: false
+    description: >
+      On/off axis mirrored from the `pressed` property (§7.11).
+      Values MUST be `[false, true]` per §7.11 rule 2 for a boolean
+      mirror. Radix's external DOM contract spells this `on|off`
+      (via `data-state="on|off"`) and ARIA as
+      `aria-pressed="true|false"` — the translation between the
+      internal axis values and the DOM/ARIA vocabularies happens in
+      the Target layer, not here. See findings F-Radix-5.
+
+# ── Output contract ──────────────────────────────────────────────────────────
+
+events:
+
+  pressedChange:
+    payload: boolean
+    description: >
+      Emitted when the user toggles the button (click, Enter, or
+      Space). Payload is the new `pressed` value (true for on →
+      fires once on press, false for off). Paired with property
+      `pressed` (bindable: two-way). Not emitted when disabled.
+      Not emitted when the consumer changes `pressed` externally.
+
+# ── Structure ────────────────────────────────────────────────────────────────
+
+anatomy:
+
+  container:
+    element: button
+    description: >
+      The host `<button type="button">`. Carries `data-state`,
+      `data-disabled`, `aria-pressed`, and native `disabled` when
+      applicable. Handles click + Enter/Space activation directly
+      — no nested native input, unlike Checkbox. Consumers paint
+      freely; Radix does not inject any child markup.
+
+# ── Visual contract ──────────────────────────────────────────────────────────
+# Headless — see F-Radix-2. Empty `tokens: {}` is the closest honest
+# declaration.
+
+tokens: {}
+
+# ── Behavioural contract ─────────────────────────────────────────────────────
+
+behavior:
+
+  toggleable:
+    description: >
+      On user activation (click, Enter, Space), the `toggleable` axis
+      flips and `pressedChange` fires with the new value. If `pressed`
+      is bound (controlled), the consumer owns the next value and the
+      component defers to whatever is bound back. If unbound
+      (uncontrolled), the component updates its internal state
+      immediately. `aria-pressed` and `data-state` update
+      synchronously with the axis flip.
+
+  disabled:
+    description: >
+      Suppresses pointer + keyboard activation. The native `<button>`
+      receives the `disabled` HTML attribute — browsers remove it from
+      the Tab sequence and block activation events. The `toggleable`
+      value is preserved (a disabled on-Toggle stays on visually and
+      ARIA-wise).
+
+# ── Accessibility ────────────────────────────────────────────────────────────
+
+accessibility:
+  element: button
+  focus-visible: true
+  keyboard:
+    Enter: "Toggle pressed"
+    Space: "Toggle pressed"
+  aria:
+    - "aria-pressed: true — when toggleable=on"
+    - "aria-pressed: false — when toggleable=off"
+    - "aria-disabled: true — when disabled=true (in addition to native disabled attr)"
+  contrast: >
+    No contrast contract — the component ships no paint. Consumers
+    are responsible for meeting WCAG 1.4.11 non-text contrast on
+    their rendered indicator between the on and off states.

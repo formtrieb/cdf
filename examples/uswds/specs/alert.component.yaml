@@ -1,0 +1,333 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# USWDS Alert — CDF Component (fifth Big-DS foreign-DS pass, §15 ARIA stress test)
+# CDF Component Format v1.0.0-draft.8
+#
+# Source:
+#   https://designsystem.digital.gov/components/alert/
+#   https://github.com/uswds/uswds/tree/main/packages/usa-alert
+#   uswdsTests/.uswds/packages/usa-alert/src/styles/_usa-alert.scss
+#   uswdsTests/.uswds/packages/usa-alert/src/usa-alert.twig
+#   uswdsTests/.uswds/packages/uswds-core/src/styles/mixins/helpers/
+#     alert-status-styles.scss (intent → colour mapping)
+#
+# USWDS's canonical Status component and THE §15 accessibility
+# stress-test surface. Five intents (info / success / warning /
+# error / emergency) drive:
+#   - three colour-token triples (bg, border-left, icon-fill)
+#   - one CONDITIONAL ARIA role (status ↔ alert)
+#   - one CONDITIONAL ARIA live politeness (off / polite / assertive)
+# — exactly the intent-driven conditional ARIA pattern F-Radix-4
+# first flagged as an open question.
+#
+# Scope choices (per brief Step 3):
+#   - intent ∈ {info, success, warning, error, emergency} — USWDS's
+#     five canonical intents per the `$alert-icons` map in
+#     `packages/usa-alert/src/styles/_usa-alert.scss`.
+#   - shape ∈ {default, slim, no-icon, validation} — USWDS's
+#     orthogonal shape modifiers. `slim` reduces padding + icon
+#     size; `no-icon` suppresses the icon; `validation` composes
+#     with a nested usa-checklist (out of scope for token bindings).
+#   - NO close button — USWDS Alert's twig template ships without
+#     one (confirmed at `uswdsTests/.uswds/packages/usa-alert/src/
+#     usa-alert.twig`). The brief's mention of "optional close
+#     button" referenced other DSes (Material, Bootstrap); USWDS
+#     chose not to ship dismissibility.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+cdf_version: "^1.0.0-draft"
+name: Alert
+category: Status
+profile: ../uswds.profile.yaml
+
+description: >
+  USWDS Alert — the federal-government design system's status /
+  notification surface. Five intents convey severity (info <
+  success < warning < error < emergency); three shape modifiers
+  adjust padding / icon visibility; the whole surface is NON-
+  interactive (no close button, no focusable child in the base
+  component — hyperlinks inside the body behave as normal links
+  with link-on-background colour adjustments).
+
+  The §15 accessibility block is the heart of this spec — USWDS
+  maps the five intents to TWO ARIA roles and THREE aria-live
+  values via documented convention at designsystem.digital.gov
+  (USWDS's own templates make role consumer-provided; the Sass
+  doesn't enforce it). CDF §15.3's narrative `aria:` list
+  expresses this mapping without requiring a structured-ARIA
+  grammar — see F-Radix-4-resolution in findings.md for the
+  full analysis.
+
+  Accessibility preferences (high-contrast, reduced-motion) are
+  OS-signal CSS media queries via §14.4 `css:` escape-hatch
+  (same category as Button's `forced_colors` behavior).
+
+# ── API surface ──────────────────────────────────────────────────────────────
+
+properties:
+
+  intent:
+    # Vocab-shorthand workaround (F-shadcn-1 carry-over)
+    type: enum
+    values: [info, success, warning, error, emergency]
+    default: info
+    binds_to: alert_intent
+    description: >
+      Visual + semantic severity. Each intent binds to a distinct
+      (background, border-left, icon) token triple from the
+      Profile's standalone_tokens, per USWDS's alert-status-body-
+      styles mixin. `emergency` is uniquely strong — its background
+      uses the FULL `color.emergency` colour (all other intents use
+      the `-lighter` variant) and pairs with the most assertive
+      ARIA wiring (role="alert" + aria-live="assertive").
+
+  shape:
+    type: enum
+    values: [default, slim, no-icon, validation]
+    default: default
+    binds_to: alert_variant_shape
+    description: >
+      Shape modifier — composes with any intent.
+        - default    — standard padding, full-size icon
+        - slim       — reduced vertical padding (`.usa-alert--slim`)
+                       + small icon (`$alert-slim-icon-size`)
+        - no-icon    — icon hidden (`.usa-alert--no-icon`)
+        - validation — form-embedded (`.usa-alert--validation`);
+                       wraps a nested `.usa-checklist` as a pass /
+                       fail list. Checklist composition out of
+                       scope for this spec.
+      USWDS's Sass supports orthogonal composition
+      (`.usa-alert--info.usa-alert--slim`), so the axis is a single
+      enum rather than four booleans. The `validation` shape only
+      meaningfully pairs with `intent: error` per USWDS conventions,
+      but the format does not restrict this — consumer responsibility.
+
+  heading:
+    type: string
+    default: ""
+    description: >
+      Optional heading text (`<h4 class="usa-alert__heading">`).
+      Absent when empty / null. Consumer-provided free text.
+
+# ── Runtime state axes ───────────────────────────────────────────────────────
+# USWDS Alert is NON-INTERACTIVE — no state axis declared. The
+# Profile's `static` interaction pattern (one `enabled` state) is
+# implicit via the Status category default. Links inside the body
+# use global `.usa-link` styling with link-on-bg auto-derivation —
+# those are NOT part of the Alert component's state surface.
+#
+# Per cdf-core validator rule: a `states:` axis MUST have ≥2 values.
+# For a one-state static component, the correct idiom is to omit
+# `states:` entirely (shadcn Badge + Primer Label prior art).
+# Confirmed clean validation.
+
+# ── Output contract ──────────────────────────────────────────────────────────
+# No events. Alert is non-interactive at the component boundary.
+# Hyperlinks inside the body dispatch their own clicks as standard
+# <a> behaviour — out of scope for this spec.
+
+events: {}
+
+# ── Structure ────────────────────────────────────────────────────────────────
+
+anatomy:
+
+  container:
+    element: div
+    description: >
+      Outer wrapper `<div class="usa-alert usa-alert--{intent}
+      {usa-alert--slim|no-icon|validation}?" role="{status|alert}?">`.
+      Carries the background, border-left (status bar), and the
+      ARIA role (consumer-provided per the USWDS twig template).
+      The ::before pseudo-element on the body carries the icon;
+      there is no separate icon anatomy child.
+
+  body:
+    element: div
+    description: >
+      Inner wrapper `<div class="usa-alert__body">`. Holds the
+      heading + text children. The `::before` pseudo is positioned
+      absolutely inside this box and carries the icon via
+      `add-color-icon` — which sets `background-color:
+      transparent; mask: url(svg)` with fill set to the
+      intent-aware text colour.
+
+  heading:
+    element: h4
+    description: >
+      Optional `<h4 class="usa-alert__heading">` — appears only
+      when `heading:` property is non-empty. Content and colour
+      inherit from the body; no dedicated heading typography
+      token in USWDS beyond `typeset($theme-alert-font-family,
+      "lg", 1)`.
+
+  text:
+    element: p
+    description: >
+      The body prose `<p class="usa-alert__text">`. Required
+      content — USWDS's twig requires the `text` param. Colour
+      inherits from body.
+
+# ── Visual contract ─────────────────────────────────────────────────────────
+# Intent-driven colour bindings. USWDS's alert-status-wrapper-styles
+# and alert-status-body-styles mixins do the work — this spec
+# binds the resulting DTCG paths. `emergency` breaks the
+# `{intent}-lighter` pattern (full-strength background).
+
+tokens:
+
+  container:
+    # Border-left status bar (`border-left: {bar-width} solid
+    # color({intent})`). The bar width is arithmetic in USWDS
+    # (`units($theme-alert-bar-width)`, typically 0.5u); not
+    # modelled as a token.
+    border-left-color:
+      info: color.info
+      success: color.success
+      warning: color.warning
+      error: color.error
+      emergency: color.emergency
+
+  body:
+    # Background — per-intent. Emergency diverges (full colour,
+    # not -lighter) which is faithfully represented below.
+    background:
+      info: color.info-lighter
+      success: color.success-lighter
+      warning: color.warning-lighter
+      error: color.error-lighter
+      emergency: color.emergency
+
+    # Text colour — USWDS's get-color-token-from-bg auto-picks
+    # `ink` on light backgrounds, `white` on dark. For the four
+    # -lighter intents + emergency, the resolution per the default
+    # USWDS theme tokens:
+    color:
+      info: color.ink
+      success: color.ink
+      warning: color.ink
+      error: color.ink
+      emergency: color.white
+
+  heading:
+    # Heading colour mirrors body — same auto-derivation.
+    color:
+      info: color.ink
+      success: color.ink
+      warning: color.ink
+      error: color.ink
+      emergency: color.white
+
+  text:
+    # Body prose colour mirrors body.
+    color:
+      info: color.ink
+      success: color.ink
+      warning: color.ink
+      error: color.ink
+      emergency: color.white
+
+# ── Behavioural contract ─────────────────────────────────────────────────────
+
+behavior:
+
+  icon_visibility:
+    description: >
+      The intent icon (`::before` pseudo on `.usa-alert__body`) is
+      suppressed when `shape=no-icon` via the `alert-styles-no-icon`
+      mixin (`&:before { display: none; }`). When `shape=slim`,
+      the icon dimensions shrink via `add-slim-alert-icon` (`mask-
+      size: units(3)` vs. default `units(4)`). These are Target-
+      layer concerns realised in generated CSS from the spec's
+      `shape` property.
+
+  reduced_motion:
+    description: >
+      Alert has no transition animation in the base USWDS styles.
+      A consumer that wraps Alert in a dismissible pattern SHOULD
+      use the `u-transition` mixin for the enter/exit animation,
+      which auto-collapses to `transition: none` under
+      `@media (prefers-reduced-motion)`. OS-signal concern; not
+      a CDF token surface. Parallel to Button's `reduced_motion`
+      behavior — F-primer-2 resolved this pass as NON-theming.
+
+  forced_colors:
+    description: >
+      USWDS Alert inherits forced-colors handling from component-
+      level rules inside `@media (forced-colors: active)` blocks
+      on text / icon colours. The icon in particular switches to
+      `CanvasText` + `ButtonBorder` CSS system colours to remain
+      visible in Windows High Contrast Mode. OS-signal; §14.4
+      `css:` territory.
+    css: >
+      @media (forced-colors: active) {
+        forced-color-adjust: auto;
+      }
+
+# ── Accessibility ────────────────────────────────────────────────────────────
+# THE §15 STRESS TEST. USWDS Alert's ARIA is intent-driven — five
+# intents map to two `role` values (status ↔ alert) and three
+# `aria-live` levels (off ↔ polite ↔ assertive). §15.3's narrative
+# `aria:` list format is the expression surface under test.
+#
+# F-Radix-4 flagged conditional ARIA as an open question. USWDS
+# Alert gives it real teeth:
+#   - info     → role=status,  aria-live=polite
+#   - success  → role=status,  aria-live=polite
+#   - warning  → role=status OR alert, aria-live=polite
+#   - error    → role=alert,   aria-live=polite
+#   - emergency → role=alert,  aria-live=assertive
+#
+# Per W3C WAI-ARIA 1.2:
+#   - role="status"   has implicit aria-live="polite"
+#   - role="alert"    has implicit aria-live="assertive"
+#   - Explicit aria-live attribute OVERRIDES the role's default.
+#   - The "warning uses polite not assertive" is USWDS's convention
+#     — a deliberate softening of alert's default assertiveness
+#     for warning-level non-critical urgency.
+#
+# All five rules are expressed below as narrative `aria:` entries
+# per §15.3's `aria-{attr}: {value-or-rule} — {trigger-condition}`
+# pattern. The pattern scales to five intents × two attributes
+# without structural friction. See F-Radix-4-resolution in
+# findings.md.
+
+accessibility:
+  element: div
+  role: status
+  focus-visible: false
+  keyboard: {}
+  aria:
+    # ── role — conditional per intent ─────────────────────────────────
+    - "role: status — when intent ∈ {info, success} (implicit aria-live=polite; non-urgent notification)"
+    - "role: alert — when intent ∈ {error, emergency} (implicit aria-live=assertive; urgent / interrupts AT output)"
+    - "role: status — when intent = warning (USWDS convention: soften to polite; role=alert acceptable when urgency warrants it)"
+
+    # ── aria-live — explicit override where USWDS deviates from role default ─
+    - "aria-live: assertive — when intent = emergency (emphasises role=alert's implicit assertiveness for highest severity)"
+    - "aria-live: polite — when intent = error (USWDS convention: softens role=alert's implicit assertive; consumer MAY override to assertive for page-blocking errors)"
+    - "aria-live: polite — when intent ∈ {info, success, warning} (matches role=status's implicit polite)"
+
+    # ── aria-atomic — uniform across intents ──────────────────────────
+    - "aria-atomic: true — always (ensures the full body is re-announced on update, not just the changed node)"
+
+    # ── Icon accessibility ────────────────────────────────────────────
+    - "aria-hidden: true — on the ::before icon pseudo-element (decorative — icon is redundant with the intent colour and heading text)"
+
+    # ── Consumer-provided role boundary ───────────────────────────────
+    - "NOTE: USWDS's own twig template makes `role` a consumer parameter (not DS-enforced). The rules above are USWDS's documented convention; CDF models the convention."
+
+  contrast: >
+    USWDS pre-validates every (intent-background, ink-or-white-text)
+    pair for WCAG 2.1 AA contrast (4.5:1 normal, 3:1 large). The
+    four `-lighter` intent backgrounds are designed to pair with
+    `color.ink`; emergency pairs with `color.white`. Icon fill
+    follows the text colour, which USWDS's
+    `get-color-token-from-bg` function derives — the runtime
+    contrast check lives in Sass compile time via a `@warn` on
+    insufficient contrast.
+
+  label_association: >
+    Alert has no label per se. Consumers SHOULD provide descriptive
+    content in the heading or text; screen readers announce the
+    full body when the alert enters the accessibility tree (initial
+    render or `aria-live` update).

@@ -1,0 +1,16 @@
+spec_directories:
+  - ./specs
+
+# Radix is headless — no tokens. Intentionally no token_sources block.
+profile_path: ./radix.profile.yaml
+
+# Legacy `profile:` block carried forward from existing test configs for validator
+# compatibility. The prefix and token patterns have no meaning for a
+# headless DS — they're kept here only so config-dependent validator
+# paths don't NPE. See findings.md F-Radix-? on this coupling.
+profile:
+  prefix: rdx
+  token_pattern_interactive: ""
+  token_pattern_status: ""
+  theme_axes: {}
+  placeholder_values: []

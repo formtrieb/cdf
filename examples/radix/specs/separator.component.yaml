@@ -1,0 +1,99 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Radix Separator — CDF Component (foreign-DS validation)
+# CDF Component Format v1.0.0-draft.5
+#
+# Source: https://www.radix-ui.com/primitives/docs/components/separator
+#
+# Radix Separator is the smallest non-trivial primitive: one visible element,
+# two props (orientation, decorative), no states, no events, no children.
+# Ported verbatim to surface frictions — NOT to produce a usable Angular
+# component. See findings.md.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+cdf_version: "^1.0.0-draft"
+name: Separator
+category: Primitive
+profile: ../radix.profile.yaml
+description: >
+  Visually or semantically separates content. When `decorative` is false
+  (the default), the component renders `role="separator"` with
+  `aria-orientation` mirroring the `orientation` prop — assistive tech
+  announces the boundary. When `decorative` is true, ARIA is stripped
+  (role=`none`, no aria-orientation) and the separator is treated as
+  presentational chrome.
+
+  Use Radix Separator when you need the behaviour-only semantics — the
+  component ships no visual treatment. Consumers paint the rule
+  themselves via CSS (height/width + background-color, typically
+  keyed off `data-orientation`).
+
+  Not suitable when you need a labelled region break (use a heading),
+  a form fieldset (use `<fieldset>`), or a routing-level boundary
+  (use a `<nav>`-scoped divider).
+
+# ── API surface ──────────────────────────────────────────────────────────────
+
+properties:
+
+  orientation:
+    type: enum
+    values: [horizontal, vertical]
+    default: horizontal
+    description: >
+      Layout axis. Surfaces at runtime as `data-orientation="horizontal|
+      vertical"` on the host element so consumer CSS can key size /
+      flex / grid behaviour off it. When `decorative` is false, also
+      mirrored to `aria-orientation` (ARIA default is horizontal, so
+      vertical is the one that actually emits the attribute).
+
+  decorative:
+    type: boolean
+    default: false
+    description: >
+      When true, the separator is announced as presentational — the
+      component emits `role="none"` and omits `aria-orientation`. When
+      false (default), role is `separator` and `aria-orientation`
+      reflects the `orientation` prop. Exists because Radix refuses to
+      guess: a visual rule between CTAs is decorative; a rule between
+      list sections is semantic.
+
+# ── Structure ────────────────────────────────────────────────────────────────
+
+anatomy:
+
+  container:
+    element: div
+    description: >
+      The sole rendered element. Carries the `data-orientation`
+      attribute, and conditionally the `role` + `aria-orientation`
+      attributes as described in `accessibility:` below. Radix's
+      default renders a `<div>`; the `asChild` prop (not modelled
+      here — see findings F-Radix-3) lets consumers substitute an
+      `<hr>` or any other element.
+
+# ── Visual contract ──────────────────────────────────────────────────────────
+# Headless — Radix ships NO styles for this component. See findings
+# F-Radix-2 for the "tokens: REQUIRED" friction. Empty object here
+# is the closest honest declaration: the component addresses no
+# anatomy parts with paint.
+
+tokens: {}
+
+# ── Accessibility ────────────────────────────────────────────────────────────
+# Radix's differentiator. The `aria:` list encodes the conditional
+# ARIA rules in prose because CDF v1.0.0-draft has no declarative
+# mechanism for "attribute X present iff property Y has value Z".
+# See findings F-Radix-4.
+
+accessibility:
+  element: div
+  focus-visible: false
+  keyboard: {}
+  aria:
+    - "role: separator — when decorative=false (default)"
+    - "role: none — when decorative=true"
+    - "aria-orientation: horizontal|vertical — mirrors orientation prop, only when decorative=false"
+  contrast: >
+    No contrast contract — the component ships no paint. Consumers
+    supplying their own styles are responsible for WCAG 1.4.11
+    (non-text contrast) on the rendered rule against its background.

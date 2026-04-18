@@ -1,0 +1,400 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Material 3 Button — CDF Component (fourth Big-DS foreign-DS pass)
+# CDF Component Format v1.0.0-draft.8
+#
+# Source:
+#   https://m3.material.io/components/buttons/specs
+#   Material 3 Design Kit (reference only — Figma variables drift from code)
+#   @material/web (reference implementation — CSS var names)
+#   Seed-derived tokens at .material3-tokens/tokens-baseline.json
+#   Static tokens at .material3-tokens/tokens-static.json
+#
+# Material 3's canonical labelled interactive control. Five variants ×
+# three sizes × full interaction coverage including focus as a
+# token-backed state (Material-specific vs prior passes). Every
+# variant × state cell resolves to a discrete pre-composed DTCG
+# value at toolchain build time — state-layer overlays are NOT
+# expressed in the spec (F-material-0). If CDF-CON-008 fires here,
+# either (a) the toolchain missed a state-token composition, or (b)
+# the Component spec tried to smuggle a percentage in. Neither
+# happened; CDF-CON-008 silent on this spec (per F-material-5).
+#
+# Scope choices (per brief Step 2):
+#   - variant ∈ {elevated, filled, filledTonal, outlined, text} — the
+#     five canonical Material 3 Button variants.
+#   - size ∈ {small, medium, large}. Material also ships extra-small
+#     and extra-large variants in m3 2024+; these are out of scope for
+#     the two-component Button+FAB pass.
+#   - density: declared as a property with `target_only: true` — THIRD-
+#     DS data point for F-primer-5 / F-shadcn-2 (F-material-3).
+#   - loading / pending: deferred, same deferral as primer (F-primer-4b).
+#   - `as` polymorphism (Material's `<md-text-button as="a">` equivalent)
+#     — deferred, same deferral category as F-Radix-3.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+cdf_version: "^1.0.0-draft"
+name: Button
+category: Interactive
+profile: ../material3.profile.yaml
+
+description: >
+  Material 3's standard labelled action trigger. Five variants
+  covering the full low-to-high emphasis spectrum, three sizes,
+  full interaction-state coverage (rest / hover / focus / pressed /
+  disabled). Material 3 treats focus as a first-class interaction
+  state with its own state-layer token — unlike Radix / shadcn /
+  Primer Buttons, whose focus is UA-pseudoclass-only — so the
+  `tokens:` block binds per-state for every interactive slot.
+
+  NOT modelled this pass: extra-small / extra-large sizes (m3 2024+
+  addition, out of the two-component pass scope); dragged state
+  (16% overlay, not surfaced in m3 Button spec); loading state
+  (deferred same as F-primer-4b, Material's loading uses a
+  CircularProgressIndicator overlay that needs a separate
+  component-spec pass); `as` polymorphism.
+
+# ── API surface ──────────────────────────────────────────────────────────────
+
+properties:
+
+  variant:
+    # Vocab-shorthand workaround (F-shadcn-1 / F-primer carry-over):
+    # cdf-core's property-type-valid does not implement §7.2's
+    # profile-vocabulary shorthand. Values duplicated from Profile's
+    # `button_variant` vocabulary. Axis name `variant` ≠ vocabulary
+    # name `button_variant`, so `binds_to:` is declared per
+    # CDF-STR-012.
+    type: enum
+    values: [elevated, filled, filledTonal, outlined, text]
+    default: filled
+    binds_to: button_variant
+    description: >
+      Visual / emphasis role — Material 3's five canonical Button
+      variants. Each variant maps to a distinct (container-role,
+      container-slot, label-role, label-slot, stroke) tuple of the
+      Profile's `color` grammar:
+        - elevated    — raised surface (surface.container fill +
+                        level1 shadow at rest, level2 on hover).
+                        Primary-coloured label.
+        - filled      — high-emphasis. Primary role, base slot, no
+                        elevation. Primary-on label.
+        - filledTonal — mid-emphasis. Secondary role, container slot.
+                        Secondary-on-container label.
+        - outlined    — transparent bg + outline stroke. Primary-
+                        coloured label.
+        - text        — transparent bg, no stroke. Primary-coloured
+                        label. Lowest emphasis.
+      The (variant → role-slot tuple) mapping is realised in the
+      `tokens:` block below via §13.3 value-maps — one entry per
+      variant per CSS property.
+
+  size:
+    type: enum
+    values: [small, medium, large]
+    default: medium
+    binds_to: size
+    description: >
+      Scale axis — Material 3 Button's three canonical sizes.
+      Material ships per-size height / padding / gap / corner-radius
+      via its `md.sys.shape.*` and density-aware sizing tokens,
+      which this Profile does not model at the colour-grammar
+      layer. Per-size shape-corner binding IS modelled here (small:
+      `shape.corner.small`, medium: `shape.corner.full`, large:
+      `shape.corner.extraLarge` — Material's "pill by default"
+      convention with small-button exception). Height / padding are
+      `target_only`-equivalent at this scope — not bound in this
+      spec. See findings F-material-6.
+
+  density:
+    type: enum
+    values: [comfortable, default, compact]
+    default: default
+    target_only: true
+    binds_to: density_step
+    description: >
+      Material 3 density-scale axis. Modulates padding and height
+      via Material's density-token family `density.button.*` which
+      this Profile deliberately does not model (the scope is colour +
+      shape + elevation + typography for Button; density is a
+      sizing-system concern the downstream target generator owns).
+
+      `target_only: true` per draft.8 §7.12 — signals that the
+      absence of `tokens:` bindings for this axis is INTENTIONAL,
+      not an authoring oversight. Validators MUST NOT warn. This
+      is the **third-DS data point** for the flag introduced via
+      F-shadcn-2 + F-primer-5 multi-DS evidence and landed in
+      draft.8 T1. See findings F-material-3.
+
+  disabled:
+    type: boolean
+    default: false
+    description: >
+      Native HTML `disabled` attribute. Suppresses pointer +
+      keyboard activation, moves the button out of the Tab sequence,
+      and drives the `interaction` state axis to `disabled` — which
+      via the Profile's pressable.token_mapping resolves every bound
+      token to its `.disabled` leaf. Material's disabled spec uses
+      12% opacity on container + 38% on text; these composites are
+      baked into `color.{role}.{slot}.disabled` tokens at toolchain
+      build time, not expressed in this spec.
+
+# ── Runtime state axes ───────────────────────────────────────────────────────
+
+states:
+
+  interaction:
+    values: [enabled, hover, focus, pressed, disabled]
+    binds_to: pressable
+    token_expandable: true
+    description: >
+      Material 3's five-state interaction axis. Per the Profile's
+      pressable.token_mapping (enabled → rest, hover → hover,
+      focus → focus, pressed → pressed, disabled → disabled), the
+      `{interaction}` placeholder in `tokens:` below resolves
+      against the `color.{role}.{slot}.{state}` grammar's {state}
+      axis. `focus` is a FULL token-backed state in Material —
+      distinct from the `focus_visible` outline — because Material
+      specifies a 10% state-layer overlay on focus that the
+      toolchain pre-composes into `color.{role}.{slot}.focus`.
+
+# ── Output contract ──────────────────────────────────────────────────────────
+
+events:
+
+  click:
+    payload: MouseEvent
+    description: >
+      Native click event. Fires on pointer activation, Enter key,
+      and Space key (browser-native `<button>` behaviour). Not
+      emitted when `disabled=true`.
+
+# ── Structure ────────────────────────────────────────────────────────────────
+
+anatomy:
+
+  container:
+    element: button
+    description: >
+      The rendered surface — native `<button type="button">`.
+      Carries the fill, border, focus ring, elevation (for
+      `elevated` variant), and shape-corner radius. Material's
+      reference implementation wraps this in a custom element
+      (`<md-filled-button>`, `<md-text-button>`, etc.) per variant;
+      CDF models the primitive surface and leaves the custom-element
+      wrapper to the Target generator.
+
+  stateLayer:
+    element: span
+    description: >
+      The state-layer overlay child element. Material's runtime
+      uses this as a separate painted layer (`background: onPrimary;
+      opacity: 0.08` on hover, etc.). In THIS spec, the state-layer
+      tokens (`color.{role}.{slot}.hover` etc) are pre-composed
+      into the container's `background` binding via the {interaction}
+      axis — the state-layer anatomy part exists in the DOM for
+      animation / ripple purposes but carries no CDF token bindings
+      (its visible effect is already baked into the container's
+      background token).
+
+      This anatomy part is declared for DOM-structure completeness
+      and to document the component's shape. A future Target
+      generator emitting Material's reference CSS would use this
+      part as the state-layer element; a simpler generator emitting
+      a single `<button>` would elide it. CDF's scope ends at token
+      bindings; DOM realisation is a Target concern.
+
+  label:
+    element: text
+    description: >
+      Visible button text. Material 3 Buttons always have a text
+      label (icon-only buttons are a separate IconButton component,
+      not this spec). Carries `typography.label.large` binding —
+      Material's canonical Button label typography.
+
+# ── Visual contract — Token-Driven Principle under Material's richest load ───
+# Every binding below is a single token path that resolves to ONE
+# DTCG value at token-build time (draft.7 §13 intro). State-layer
+# percentages (8% / 10% / 10% / 12% / 38%) appear NOWHERE in this
+# spec — they are pre-composed into the `{state}` slot of the colour
+# grammar by the toolchain.
+#
+# Per §13.3 value-maps: the variant → role-slot mapping is expressed
+# as a map of variant-values to token paths. This is §13.3's
+# "property-driven scales" form — cleanest for Material where every
+# variant has a distinct token structure.
+
+tokens:
+
+  container:
+    # ── Fill — varies by variant × state ────────────────────────────
+    # Each variant picks a different (role, slot) from the colour
+    # grammar. {interaction} expands via pressable.token_mapping to
+    # rest/hover/focus/pressed/disabled — the state-layer pre-composites.
+    background:
+      elevated:    color.surface.container.{interaction}
+      filled:      color.primary.base.{interaction}
+      filledTonal: color.secondary.container.{interaction}
+      outlined:    color.surface.base.{interaction}
+      text:        color.surface.base.{interaction}
+
+    # ── Stroke — only outlined variant carries one ─────────────────
+    # outlined uses the standalone `color.outline` singleton. Other
+    # variants have no border. Material 3's outlined-disabled state
+    # uses outline at 12% — the toolchain could emit a
+    # `color.outline.disabled` singleton; this Profile models outline
+    # as a single-value standalone, so outlined-disabled's border
+    # treatment falls back to CSS-level `opacity` on the stroke OR a
+    # dedicated disabled-outline token. Logged as F-material-7.
+    border-color:
+      outlined: color.outline
+
+    # ── Label colour — varies by variant × state ───────────────────
+    # Filled uses on-primary; elevated / outlined / text / filledTonal
+    # use different on-slots.
+    color:
+      elevated:    color.primary.base.{interaction}
+      filled:      color.primary.on.{interaction}
+      filledTonal: color.secondary.onContainer.{interaction}
+      outlined:    color.primary.base.{interaction}
+      text:        color.primary.base.{interaction}
+
+    # ── Shape corner — varies by size ──────────────────────────────
+    # Material 3 Button default is "pill" (full radius) for medium,
+    # slightly reduced for small, expanded for large — not a uniform
+    # shape. Per §13.3 value-map — one token per size value.
+    border-radius:
+      small:  shape.corner.small
+      medium: shape.corner.full
+      large:  shape.corner.extraLarge
+
+    # ── Elevation — default flat (level0) for all variants ────────
+    # Only the `elevated` variant carries non-zero elevation, and
+    # within `elevated` the level varies by interaction state:
+    # rest/focus/pressed → level1, hover → level2, disabled → level0.
+    # This is TWO axes of simultaneous state-driven token resolution
+    # (variant AND interaction). Single-axis §13.2 modifier form
+    # cannot express it (the spec explicitly forbids chaining two
+    # `--axis.value` segments); the correct CDF idiom is
+    # `compound_states:` (§8.8). See compound_states block below,
+    # and F-material-5 in findings for the observation.
+    box-shadow: elevation.level0
+
+    # ── Focus ring — single-ring per §13.5.1 ───────────────────────
+    # Material uses BOTH a state-layer overlay (baked into
+    # color.{role}.{slot}.focus above) AND a discrete ring outline.
+    # The ring is a single `outline-color:` binding per the
+    # single-ring pattern §13.5.1 describes. Ring color is the
+    # focus.outline singleton.
+    outline-color: color.focus.outline
+
+    # ── Motion — interaction-state transitions ─────────────────────
+    # Material 3 specifies `short4` (200ms) for Button state
+    # transitions with `standard` easing. Single pair of tokens, no
+    # variant variation.
+    transition-duration: motion.duration.short4
+    transition-timing-function: motion.easing.standard
+
+  stateLayer:
+    # ── Intentionally empty ────────────────────────────────────────
+    # See anatomy.stateLayer description: the state-layer's visible
+    # effect is baked into the container's background token via the
+    # {interaction} axis. No CDF bindings here.
+
+  label:
+    # Label colour mirrors the container.color binding — §13.1 allows
+    # a child anatomy part to reference the same grammar slot as its
+    # parent. Per-variant, per-state.
+    color:
+      elevated:    color.primary.base.{interaction}
+      filled:      color.primary.on.{interaction}
+      filledTonal: color.secondary.onContainer.{interaction}
+      outlined:    color.primary.base.{interaction}
+      text:        color.primary.base.{interaction}
+
+    # Typography — Material 3 Button label is `label.large` per
+    # m3.material.io typography spec. Invariant across variants and
+    # sizes (size modulates padding / height but not label type
+    # scale — that's a documented Material convention).
+    # `dtcg_type: typography` is a composite DTCG type, so a single
+    # `typography:` key with a single token path binds the full
+    # composite (family + size + weight + line-height + letter-spacing)
+    # at once — per §13.4's mixin-reference form.
+    typography: typography.label.large
+
+# ── Compound states — elevation × variant × interaction ─────────────────────
+# §8.8 compound_states block. Used for the elevated variant's
+# state-driven elevation, which §13.2's single-axis modifier syntax
+# cannot express (two axes simultaneously → forbidden chain).
+
+compound_states:
+  - when: { variant: elevated, interaction: enabled }
+    tokens:
+      container:
+        box-shadow: elevation.level1
+
+  - when: { variant: elevated, interaction: hover }
+    tokens:
+      container:
+        box-shadow: elevation.level2
+
+  - when: { variant: elevated, interaction: focus }
+    tokens:
+      container:
+        box-shadow: elevation.level1
+
+  - when: { variant: elevated, interaction: pressed }
+    tokens:
+      container:
+        box-shadow: elevation.level1
+
+  - when: { variant: elevated, interaction: disabled }
+    tokens:
+      container:
+        box-shadow: elevation.level0
+
+# ── Behavioural contract ─────────────────────────────────────────────────────
+
+behavior:
+
+  pressable:
+    description: >
+      On pointer activation, Enter, or Space, the `click` event
+      fires and the consumer's handler runs. No component-internal
+      state ties to activation; hover / focus / pressed states are
+      UA-pseudoclass + focus-visible-driven on the DOM side, with
+      state-layer overlays produced by the pre-composed tokens the
+      `{interaction}` axis resolves to.
+
+  disabled:
+    description: >
+      Suppresses pointer + keyboard activation via native `disabled`.
+      Also drives the interaction state to `disabled` — per the
+      Profile's pressable.token_mapping, every bound token resolves
+      to its `.disabled` leaf. Material's 12%-container / 38%-text
+      opacity composites are baked into the `.disabled` leaves by
+      the toolchain; no opacity expression appears in this spec.
+
+# ── Accessibility ────────────────────────────────────────────────────────────
+
+accessibility:
+  element: button
+  focus-visible: true
+  keyboard:
+    Enter: "Activate (fires click)"
+    Space: "Activate (fires click)"
+    Tab: "Native focus order"
+  aria:
+    - "aria-disabled: true — when disabled=true (in addition to native disabled attr)"
+    - "role: inferred from `<button>`"
+  contrast: >
+    Material 3's colour-role system guarantees WCAG AA contrast for
+    `on-{role}` labels over their paired `{role}` surfaces at the
+    `standard` contrast level, AAA at `medium` and `high` contrast
+    levels. The `contrast` theme-axis (Profile §8) selects which
+    level is active at runtime. Per-state overlays preserve contrast
+    because the state-layer colour is always the role's paired
+    on-slot (e.g. primary.hover overlays with onPrimary at 8%),
+    which Material's seed-derivation algorithm keeps perceptually
+    consistent with the base. Material's own contrast-guarantee
+    documentation owns the full proof; CDF trusts the Profile's
+    theme-axis declaration and the toolchain's token resolution.
