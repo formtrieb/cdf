@@ -176,6 +176,41 @@ scaffold:
 Unknown keys are ignored by the validator + other consumers, so
 adding tool-specific extensions under a namespaced sub-block is safe.
 
+## Figma access (Personal Access Token)
+
+The Figma-source tools in `@formtrieb/cdf-mcp`
+(`cdf_fetch_figma_file`, `cdf_extract_figma_file` with
+`source: "rest"`, `cdf_resolve_figma_variables`) need a Figma
+Personal Access Token to hit the REST API. Create one at
+<https://www.figma.com/settings> → **Personal access tokens** →
+*Generate new token* with the **File content — Read** scope (and
+**Variables — Read** if you're on Enterprise and want T2 Variable
+resolution).
+
+PAT resolution order in every cdf-mcp tool that takes one:
+**`pat:` arg → `FIGMA_PAT` env var → actionable error.** The arg
+form overrides the env var so you can default to one PAT in the
+shell and override per-call.
+
+Two common delivery patterns:
+
+```bash
+# Option A — shell env var (engineer-friendly; one PAT for all DS work)
+export FIGMA_PAT="figd_YOUR_TOKEN_HERE"   # add to ~/.zshrc to persist
+
+# Option B — per-call arg (designer-friendly; multi-account / per-file PATs)
+# Inside a Claude Code session, ask the skill to call:
+#   cdf_fetch_figma_file({ file_key: "abc123", pat: "figd_OTHER_TOKEN" })
+```
+
+The full how-to (creation walkthrough with screenshots, scope
+table, `.env`-file delivery for project-scoped tokens, common error
+diagnoses, security notes, and the no-PAT T0 fallback for
+evaluators) lives in the
+[`cdf` plugin README](https://github.com/formtrieb/cdf-plugin#figma-personal-access-token-pat).
+The mechanics are identical whether you use cdf-mcp through the
+plugin or directly via Claude Desktop's MCP config.
+
 ## The five-DS evidence suite
 
 Each example under [`examples/`](./examples/) is a complete port of a
