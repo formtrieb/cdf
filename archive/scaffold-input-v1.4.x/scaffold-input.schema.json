@@ -1,0 +1,174 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$ref": "#/definitions/ScaffoldInput",
+  "definitions": {
+    "ScaffoldInput": {
+      "type": "object",
+      "properties": {
+        "tokens": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ScaffoldInputToken"
+          }
+        },
+        "modes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ScaffoldInputMode"
+          }
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ScaffoldInputComponent"
+          }
+        },
+        "source": {
+          "$ref": "#/definitions/ScaffoldInputSource"
+        }
+      },
+      "required": [
+        "tokens"
+      ],
+      "additionalProperties": false
+    },
+    "ScaffoldInputToken": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "value": {
+          "type": [
+            "string",
+            "number"
+          ]
+        },
+        "type": {
+          "$ref": "#/definitions/TokenType"
+        }
+      },
+      "required": [
+        "path",
+        "value",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "TokenType": {
+      "type": "string",
+      "enum": [
+        "color",
+        "dimension",
+        "typography",
+        "shadow",
+        "number",
+        "string"
+      ],
+      "description": "ScaffoldInput — MCP-agnostic input contract for `cdf_profile_scaffold`. Users produce this JSON via a transformer (see cdf/examples/scaffold-input/); the tool never parses Figma/DTCG/Storybook directly.\n\nSchema: tokens (required) + modes (optional) + components (optional) +         source metadata (optional). See design doc §1."
+    },
+    "ScaffoldInputMode": {
+      "type": "object",
+      "properties": {
+        "collection": {
+          "type": "string"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "collection",
+        "values"
+      ],
+      "additionalProperties": false
+    },
+    "ScaffoldInputComponent": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "properties": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ScaffoldInputProperty"
+          }
+        },
+        "token_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "properties"
+      ],
+      "additionalProperties": false
+    },
+    "ScaffoldInputProperty": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/PropertyType"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "PropertyType": {
+      "type": "string",
+      "enum": [
+        "variant",
+        "boolean",
+        "instance-swap",
+        "text"
+      ]
+    },
+    "ScaffoldInputSource": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "figma",
+            "figma-console",
+            "dtcg",
+            "handwritten",
+            "code"
+          ]
+        },
+        "ref": {
+          "type": "string"
+        },
+        "date": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "$id": "https://github.com/formtrieb/cdf/blob/main/examples/scaffold-input/scaffold-input.schema.json",
+  "title": "CDF ScaffoldInput",
+  "description": "Input contract for the cdf_profile_scaffold tool. Produced by a transformer (see cdf/examples/scaffold-input/) from Figma / DTCG / Storybook / handwritten sources."
+}

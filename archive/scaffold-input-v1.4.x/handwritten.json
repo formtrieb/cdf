@@ -1,0 +1,27 @@
+{
+  "tokens": [
+    { "path": "color.primary.bg.rest",   "value": "#3b82f6", "type": "color" },
+    { "path": "color.primary.bg.hover",  "value": "#2563eb", "type": "color" },
+    { "path": "color.primary.text.rest", "value": "#ffffff", "type": "color" },
+    { "path": "spacing.sm", "value": "8px",  "type": "dimension" },
+    { "path": "spacing.md", "value": "16px", "type": "dimension" }
+  ],
+  "modes": [
+    { "collection": "Theme", "values": ["Light", "Dark"] }
+  ],
+  "components": [
+    {
+      "name": "Button",
+      "properties": [
+        { "name": "variant", "type": "variant", "values": ["primary", "secondary"] },
+        { "name": "size",    "type": "variant", "values": ["sm", "md", "lg"] }
+      ],
+      "token_refs": [
+        "color.primary.bg.rest",
+        "color.primary.bg.hover",
+        "color.primary.text.rest"
+      ]
+    }
+  ],
+  "source": { "kind": "handwritten", "ref": "scratch-pad" }
+}

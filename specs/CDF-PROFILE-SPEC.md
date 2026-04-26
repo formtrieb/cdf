@@ -1,3 +1,7 @@
+<!-- GENERATED FILE — do not edit directly.
+     Source fragments: cdf/specs/profile/
+     Regenerate with:  scripts/build-profile-spec.sh -->
+
 # CDF Profile Format
 
 **Version:** 1.0.0
@@ -1234,8 +1238,11 @@ interaction_patterns:
   {pattern_name}:                 # REQUIRED — snake_case
     description: string           # REQUIRED
     states: [string, ...]         # REQUIRED — component-facing state names
-    token_layer: string           # optional — which §6 grammar group owns
-                                  #            the state-specific tokens
+    token_layer: string           # optional — name of an entry in
+                                  #            §6.10 `token_layers:` (NOT
+                                  #            a grammar key from §6).
+                                  #            Validators reject grammar
+                                  #            keys here.
     token_mapping:                # optional — component-facing → token-path
       {component_state}: {path_state}
     orthogonal_to: [string, ...]  # optional — other patterns this composes
@@ -1265,11 +1272,24 @@ documentation tools (Storybook grids, Figma variant rows).
 
 ### 10.3 `token_layer`
 
-Optional reference to a token-grammar **layer** (Controls, Interaction,
-Foundation in Formtrieb's `token_layers` list). Declares where the
-pattern's state-specific tokens live. A validator MAY use this to check
-that a CDF Component using the `pressable` pattern reads from `color.controls`
-(Controls layer) rather than `color.interaction` directly.
+Optional reference to a **token layer** — i.e. an entry in the
+Profile's [`token_layers:`](#610-token_layers--reference-cascade-between-grammar-groups) list (`name:` of one of the
+declared layers, e.g. `Controls`, `Interaction`, `Foundation` in
+Formtrieb's setup). It is **not** a token-grammar key (e.g.
+`color.controls`); a validator running L4 (cross-field structural)
+rejects a `token_layer:` value that does not match a declared layer
+name.
+
+The reason is one of indirection: a layer groups one or more grammars
+plus standalone tokens, and patterns bind to that grouping rather
+than to a single grammar. A pressable Button reading from `Controls`
+can pull from any of `color.controls`, `radius.controls`, etc., via
+the same layer reference; pinning the pattern to one grammar would
+break that.
+
+A validator MAY use this to check that a CDF Component using the
+`pressable` pattern reads from a grammar inside the `Controls` layer
+rather than reaching into `Interaction` or `Foundation` directly.
 
 ### 10.4 `token_mapping`
 

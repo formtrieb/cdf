@@ -14,28 +14,19 @@ is the minimum surface a Component / Profile / Target must declare?"*
 
 ## Running the validator
 
-The simplest path is via the CDF MCP tool, after pointing it at this
-directory's `.cdf.config.yaml`:
+The simplest path is via the CDF MCP tool (`formtrieb-cdf-mcp` v1.5.0+),
+after pointing it at this directory's `.cdf.config.yaml`:
 
 ```text
-cdf_validate                  # validates every spec in the configured directory
-cdf_validate component=Tag    # narrow to a single component
+cdf_validate_component                    # validates every spec in the configured directory
+cdf_validate_component component=Tag      # narrow to a single component
+cdf_validate_profile                      # validates the configured Profile (L0–L7 default + L8 opt-in)
 ```
 
-Or directly from the repo root:
-
-```bash
-node -e "
-import('./packages/cdf-core/dist/index.js').then(async ({ parseConfigFile, validateAll }) => {
-  const cfg = parseConfigFile('./specs/v1.0.0-draft/examples/.cdf.config.yaml');
-  for (const r of validateAll(['./specs/v1.0.0-draft/examples'], cfg)) {
-    console.log(r.valid ? 'OK' : 'FAIL', r.file, r.summary);
-  }
-});
-"
-```
-
-Expected: `OK … { errors: 0, warnings: 0, info: 0 }`.
+> **Note on tool naming:** in cdf-mcp v1.5.0 the bare `cdf_validate`
+> tool was split into `cdf_validate_component` (component specs) and
+> `cdf_validate_profile` (Profile YAML). Older docs may still
+> reference the pre-split name.
 
 ## What these are *not*
 
