@@ -61,6 +61,27 @@ A minimal end-to-end example lives at
 + `minimal.component.yaml` + `minimal.target.yaml` that parse
 clean against the spec's validator.
 
+## Evolution
+
+CDF evolves under a three-article Constitution and Architecture
+Decision Records (ADRs). The Constitution names the principles
+that govern which kinds of changes are on-pattern; ADRs capture
+individual format-affecting decisions, why they were made, and
+what was rejected.
+
+- [`specs/CDF-EVOLUTION.md`](./specs/CDF-EVOLUTION.md) — the
+  Constitution, ADR template, status lifecycle, supersession rule,
+  and semver cadence.
+- [`specs/adrs/`](./specs/adrs/) — individual ADRs. Start with
+  [ADR-001](./specs/adrs/001-cdf-constitution.md) (the
+  Constitution itself) and the index at
+  [`specs/adrs/README.md`](./specs/adrs/README.md).
+
+External adopters who plan to fork the format or build durable
+tooling on top of it should read the Constitution before opening
+issues — it explains what kinds of format change the maintainers
+will and will not entertain.
+
 ## Reference implementation
 
 The TypeScript parser + validator + MCP server lives in a sibling
@@ -75,6 +96,85 @@ npm install @formtrieb/cdf-core
 
 The spec in this repo is the authority; cdf-core tracks it and
 implements the rules.
+
+## Quickstart — `.cdf.config.yaml`
+
+A `.cdf.config.yaml` at the root of a design-system repo is how the
+CDF tooling (the [`@formtrieb/cdf-mcp`](https://www.npmjs.com/package/@formtrieb/cdf-mcp)
+server, the [`cdf` Claude Code plugin](https://github.com/formtrieb/cdf-plugin),
+the `cdf-core` analyzer) finds the Profile, the token sources, and
+the Profile-scaffold state for a given DS.
+
+The `cdf` plugin installs as a one-entry marketplace (two-step):
+
+```bash
+claude plugin marketplace add formtrieb/cdf-plugin
+claude plugin install cdf@cdf
+```
+
+Minimum shape (Profile already authored):
+
+```yaml
+spec_directories: [./specs]
+token_sources: [./tokens/]
+profile_path: ./my-ds.profile.yaml
+```
+
+Full shape used by the `cdf` plugin's
+[`/cdf:scaffold-profile`](https://github.com/formtrieb/cdf-plugin)
+skill (the `scaffold:` block is **provisional in v1.0**; formal schema
+to be added in CDF Profile Spec v1.1.0):
+
+```yaml
+# Authored / canonical fields
+spec_directories: [./specs]
+token_sources: [./tokens/]
+profile_path: ./my-ds.profile.yaml
+
+# Maintained by /cdf:scaffold-profile (provisional v1.0 — schema
+# formalisation queued for CDF Profile Spec v1.1.0)
+scaffold:
+  ds_name: my-ds                              # 🔴 required
+  figma:
+    file_url: https://figma.com/design/<KEY>  # 🔴 required
+    file_cache_path: ./.cdf-cache/figma/<KEY>.json   # T1/T2 — REST cache on disk
+  tier: T1                                    # T0 | T1 | T2 — auto-detected
+  auto_mode: false                            # true → benchmark/eval-only artefacts
+  token_source:
+    regime: tokens-studio                     # see §regimes below
+    path: ./tokens/
+    quality_rating: 3                         # 1–3 stars (0 when regime=none)
+  resolver:                                   # T1/T2 only
+    kind: tokens-mcp                          # tokens-mcp | plugin-cache | enterprise-rest
+    mcp_name: my-ds-tokens                    # for tokens-mcp kind
+    cache_path: ./.cdf-cache/figma/variables.json   # for plugin-cache kind
+  doc_frames:
+    convention: _doc-content                  # 🟢 optional
+  external_docs: []                           # 🟢 optional URLs
+  last_scaffold:                              # written after each run
+    timestamp: 2026-04-26T10:15Z
+    skill_version: 1.0.0
+    tier_used: T1
+    auto_mode_used: false
+    phases_completed: [1, 2, 3, 4, 5, 6, 7]
+    artefacts:
+      profile: ./my-ds.profile.yaml
+      findings: ./my-ds.findings.md
+```
+
+### `token_source.regime` values
+
+| Regime | When to use |
+|---|---|
+| `tokens-studio` | Tokens are authored in [Tokens Studio](https://tokens.studio); a DS-specific tokens MCP exposes `list_token_sets` / `browse_tokens` |
+| `dtcg-folder` | Tokens live as DTCG-spec JSON files under `path:` |
+| `figma-variables` | Tokens are Figma Variables (resolved at scaffold-time via Plugin-API or `cdf_resolve_figma_variables`) |
+| `figma-styles` | Pre-Variables Figma Styles (paint / text / effect styles) |
+| `enterprise-rest` | Figma Enterprise REST `/v1/files/{key}/variables` endpoint |
+| `none` | DS has no machine-readable token surface (skill records this as a finding) |
+
+Unknown keys are ignored by the validator + other consumers, so
+adding tool-specific extensions under a namespaced sub-block is safe.
 
 ## The five-DS evidence suite
 

@@ -5,6 +5,37 @@ follows [Semantic Versioning](https://semver.org/): breaking changes
 bump the major; additive field/rule changes bump the minor; doc
 polish and clarifications bump the patch.
 
+The format's evolution policy and the decisions behind it live in
+[`specs/CDF-EVOLUTION.md`](./specs/CDF-EVOLUTION.md) (Constitution +
+ADR process) and [`specs/adrs/`](./specs/adrs/) (individual ADRs).
+
+---
+
+## [Unreleased]
+
+### Added — 2026-04-26
+
+- **Evolution policy** —
+  [`specs/CDF-EVOLUTION.md`](./specs/CDF-EVOLUTION.md) documents
+  the three-article Constitution (Token-Driven Binding · API Hard,
+  Tokens Pragmatic · LLM-First + Correctness-Without-Bureaucracy)
+  and the ADR process (Nygard-style template, three-digit numbering,
+  immutable-once-Accepted supersession rule, semver cadence).
+- **First four ADRs** under [`specs/adrs/`](./specs/adrs/):
+  - [ADR-001](./specs/adrs/001-cdf-constitution.md) — CDF
+    Constitution (Accepted)
+  - [ADR-002](./specs/adrs/002-dtcg-extensions-pattern.md) — DTCG
+    `$extensions` adoption pattern (Accepted, Defer)
+  - [ADR-003](./specs/adrs/003-dtcg-type-requirement.md) — DTCG
+    `$type` requirement (Accepted)
+  - [ADR-004](./specs/adrs/004-component-binding-syntax.md) —
+    Component token-binding syntax (Accepted)
+
+These additions are non-normative meta-documentation; no spec text
+or validator behaviour changes. The evolution policy formalises
+how future minor and major releases will be reasoned about and
+recorded.
+
 ---
 
 ## [1.0.0] — 2026-04-18
